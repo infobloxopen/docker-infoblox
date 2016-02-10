@@ -1,11 +1,19 @@
 infoblox-ipam
 =============
 
-Docker (libnetwork) plugin for IPAM
+Docker (libnetwork) driver for IPAM
 -----------------------------------
 
+infoblox-ipam is a Docker libnetwork driver that interfaces with Infoblox to provide IP Address Management
+services. libnetwork is the library provided by Docker that allows third-party drivers for container
+networking.
 
-This program is a Docker libnetwork plugin that provides IPAM services. The libnetwork is the library provided by Docker 1.9 that allows third-party plugins for container networking. This plugin is an IPAM driver that interface with Infoblox to IP Address Management functions
+
+Prerequisite
+------------
+To use the driver, you need access to the Infoblox DDI product. For evaluation purposes, you can download a
+virtual version of the product from the Infoblox Download Center (https://www.infoblox.com/infoblox-download-center)
+Alternatively, if you are an existing Infoblox customer, you can download it from the support site.
 
 
 Build
@@ -14,7 +22,9 @@ Build
 
 Installation
 ------------
-Installation is fairly simple. Make sure the directory ```/run/docker/plugins/``` exists and the UNIX socket file ```/run/docker/plugins/mddi.sock``` does not exist so that the plugin could write to ```/run/docker/plugins/mddi.sock```. 
+Installation is fairly simple. Make sure the directory ```/run/docker/plugins/``` exists and the
+UNIX socket file ```/run/docker/plugins/mddi.sock``` does not exist so that the driver could write to
+```/run/docker/plugins/mddi.sock```.
 
 
 Run Executable
@@ -33,7 +43,7 @@ Usage of ./infoblox-ipam:
   -local-view string
         Infoblox Network View for Local Address Space (default "default")
   -socket string
-        Unix socket for mDDI Docker (libnetwork) plugin in bridge/ipam driver (default "/run/docker/plugins/mddi.sock")
+        Unix socket for infoblox-ipam driver (default "/run/docker/plugins/mddi.sock")
   -wapi-password string
         Infoblox WAPI Password
   -wapi-port string
@@ -71,16 +81,19 @@ For coneniences, a script called "run-container.sh" is proivded.
 
 Usage
 -----
-To start using the plugin, a docker network needs to be created specifying the driver using the --ipam-driver option:
+To start using the dirver, a docker network needs to be created specifying the driver using the --ipam-driver option:
 ```
 sudo docker network create --ipam-driver=mddi mddi-net
 ```
-This creates a docker network called "mddi-net" which uses "mddi" as the IPAM driver and the default "bridge" driver as the network driver.
+This creates a docker network called "mddi-net" which uses "mddi" as the IPAM driver and the default "bridge"
+driver as the network driver.
 
-After which, Docker containers can be started attaching to the "mddi-net" network created above. For example, the following command run the "ubuntu" image:
+After which, Docker containers can be started attaching to the "mddi-net" network created above. For example,
+the following command run the "ubuntu" image:
 
 ```
 sudo docker run -i -t --net=mddi-net --name=ubuntu1 ubuntu
 ```
 
-When the container comes up, verify using the "ifconfig" command that IP has been successfully provisioned from Infoblox. 
+When the container comes up, verify using the "ifconfig" command that IP has been successfully provisioned
+from Infoblox.
