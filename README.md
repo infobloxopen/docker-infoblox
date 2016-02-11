@@ -24,7 +24,7 @@ Installation
 ------------
 Installation is fairly simple. Make sure the directory ```/run/docker/plugins/``` exists and the
 UNIX socket file ```/run/docker/plugins/mddi.sock``` does not exist so that the driver could write to
-```/run/docker/plugins/mddi.sock```.
+```/run/docker/plugins/mddi.sock``` .
 
 
 Run Executable
@@ -67,17 +67,21 @@ For convenience, a script called "run.sh" is provided which can be editted to sp
 Run Container
 ------------
 Alternatively, the driver can also be run as a docker container.
-For example, assuming that the name of the docker image for the driver is "infoblox-ipam", the
-following command with start the driver in a container:
 
+A pre-built docker image can be pulled from Docker Hub using the following command:
 ```
-docker run -v /var/run:/var/run -v /run/docker:/run/docker ./infoblox-ipam --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --global-view=global_view
+docker pull infoblox/ipam-driver
+```
+
+After successfully pulling the image, you use the ```docker run``` command to run the driver. For exampe:
+```
+docker run -v /var/run:/var/run -v /run/docker:/run/docker infoblox/ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --global-view=global_view
 ```
 
 Note that the -v options are necessary to provide the container access to the specified directories on the
 host file system.
 
-For coneniences, a script called "run-container.sh" is proivded.
+For convenience, a script called "run-container.sh" is provided.
 
 Usage
 -----
