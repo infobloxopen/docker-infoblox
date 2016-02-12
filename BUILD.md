@@ -8,7 +8,8 @@ Prerequisite
 
 Install Dependency
 ------------------
-The driver primarily depend on libnetwork. This can 'supposedly' be installed using the following command:
+The driver primarily depends on libnetwork and the infoblox-go-client . They can be installed using the
+following commands:
 
 ```
 go get github.com/docker/libnetwork  # libnetwork library
@@ -54,7 +55,7 @@ You have to first create the binary executable.
 To build container image using the Dockerfile in the "docker-infoblox" directory:
 
 ```
-docker build -t infoblox-ipam .
+docker build -t ipam-driver .
 ```
 
-This build a docker image called "infoblox-ipam" using the Dockerfile in the current directory.
+This build a docker image called "ipam-driver" according to the Dockerfile in the current directory.
