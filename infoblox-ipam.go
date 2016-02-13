@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	ibclient "github.com/infobloxopen/infoblox-go-client"
 	apitypes "github.com/docker/engine-api/types"
 	ipamsapi "github.com/docker/libnetwork/ipams/remote/api"
 	netlabel "github.com/docker/libnetwork/netlabel"
+	ibclient "github.com/infobloxopen/infoblox-go-client"
 	"io/ioutil"
 	"log"
 	"net"
@@ -135,7 +135,7 @@ func fIpamDriverRequestAddress(w http.ResponseWriter, r *http.Request) {
 
 	macAddr := v.Options[netlabel.MacAddress]
 	if len(macAddr) == 0 {
-		log.Printf("RequestAddressRequest contains empty MAC Address. A random one will be generated.\n")
+		log.Printf("RequestAddressRequest contains empty MAC Address. '00:00:00:00:00:00' will be used.\n")
 	}
 	network := ibclient.BuildNetworkFromRef(v.PoolID)
 	fixedAddr, _ := objMgr.AllocateIP(network.NetviewName, network.Cidr, macAddr)
@@ -172,6 +172,12 @@ func fIpamDriverReleasePool(w http.ResponseWriter, r *http.Request) {
 		log.Printf("/IpamDriver.ReleasePool Bad Request Error: %s\n", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+	if len(v.PoolID) > 0 {
+		ref, _ := objMgr.DeleteLocalNetwork(v.PoolID)
+		if len(ref) > 0 {
+			log.Printf("Network %s deleted from Infoblox\n", v.PoolID)
+		}
 	}
 	if err := json.NewEncoder(w).Encode(map[string]string{}); err != nil {
 		log.Printf("/IpamDriver.ReleasePool Bad Response Error: %s\n", err)
