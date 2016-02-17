@@ -258,7 +258,7 @@ var objMgr *ibclient.ObjectManager
 func main() {
 	defaultCidr := flag.String("default-cidr", "10.2.1.0/24", "Default Network CIDR if --subnet is not specified during docker network create")
 	gridHostVar := flag.String("grid-host", "192.168.124.200", "IP of Infoblox Grid Host")
-	wapiVerVar := flag.String("wapi-version", "2.2", "Infoblox WAPI Version.")
+	wapiVerVar := flag.String("wapi-version", "2.0", "Infoblox WAPI Version.")
 	wapiPortVar := flag.String("wapi-port", "443", "Infoblox WAPI Port.")
 	globalNamespace := flag.String("global-view", "default", "Infoblox Network View for Global Address Space")
 	localNamespace := flag.String("local-view", "default", "Infoblox Network View for Local Address Space")
