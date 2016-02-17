@@ -185,28 +185,95 @@ func fIpamDriverReleasePool(w http.ResponseWriter, r *http.Request) {
 	log.Printf("/IpamDriver.ReleasePool %s completed\n", v.PoolID)
 }
 
+func dirExists(dirname string) (bool, error) {
+	fileInfo, err := os.Stat(dirname)
+	if err == nil {
+		if fileInfo.IsDir() {
+			return true, nil
+		} else {
+			return false, nil
+		}
+	} else if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+func createDir(dirname string) error {
+	return os.MkdirAll(dirname, 0700)
+}
+
+func fileExists(filePath string) (bool, error) {
+	_, err := os.Stat(filePath)
+
+	if err == nil {
+		return true, nil
+	} else if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return true, err
+}
+
+func deleteFile(filePath string) error {
+	return os.Remove(filePath)
+}
+
+func setupSocket(pluginDir string, driverName string) string {
+	exists, err := dirExists(pluginDir)
+	if err != nil {
+		log.Panicf("Stat Plugin Directory error '%s'", err)
+		os.Exit(1)
+	}
+	if !exists {
+		err = createDir(pluginDir)
+		if err != nil {
+			log.Panicf("Create Plugin Directory error: '%s'", err)
+			os.Exit(1)
+		}
+		log.Printf("Created Plugin Directory: '%s'", pluginDir)
+	}
+
+	socketFile := pluginDir + "/" + driverName + ".sock"
+	exists, err = fileExists(socketFile)
+	if err != nil {
+		log.Panicf("Stat Socket File error: '%s'", err)
+		os.Exit(1)
+	}
+	if exists {
+		err = deleteFile(socketFile)
+		if err != nil {
+			log.Panicf("Delete Socket File error: '%s'", err)
+			os.Exit(1)
+		}
+		log.Printf("Deleted Old Socket File: '%s'", socketFile)
+	}
+
+	return socketFile
+}
+
 var np string
 var objMgr *ibclient.ObjectManager
 
 func main() {
-	socket := flag.String("socket", "/run/docker/plugins/mddi.sock", "Unix socket for mDDI Docker (libnetwork) plugin in bridge/ipam driver")
-	cidr := flag.String("cidr", "10.2.1.0/24", "Default Network CIDR if --subnet is not specified during docker network create")
+	defaultCidr := flag.String("default-cidr", "10.2.1.0/24", "Default Network CIDR if --subnet is not specified during docker network create")
 	gridHostVar := flag.String("grid-host", "192.168.124.200", "IP of Infoblox Grid Host")
-	wapiVerVar := flag.String("wapi-ver", "2.2", "Infoblox WAPI Version.")
+	wapiVerVar := flag.String("wapi-version", "2.2", "Infoblox WAPI Version.")
 	wapiPortVar := flag.String("wapi-port", "443", "Infoblox WAPI Port.")
 	globalNamespace := flag.String("global-view", "default", "Infoblox Network View for Global Address Space")
 	localNamespace := flag.String("local-view", "default", "Infoblox Network View for Local Address Space")
 	wapiUsername := flag.String("wapi-username", "", "Infoblox WAPI Username")
 	wapiPassword := flag.String("wapi-password", "", "Infoblox WAPI Password")
+	pluginDir := flag.String("plugin-dir", "/run/docker/plugins", "Docker plugin directory where driver socket is created")
+	driverName := flag.String("driver-name", "mddi", "Name of Infoblox IPAM driver")
 
 	flag.Parse()
 
-	dockerID, _ := getDockerID()
-	if len(dockerID) > 0 {
-		log.Printf("Docker id is '%s'\n", dockerID)
-	}
+	socketFile := setupSocket(*pluginDir, *driverName)
+	log.Printf("Driver Name: '%s'", *driverName)
+	log.Printf("Socket File: '%s'", socketFile)
 
-	_, network, err := net.ParseCIDR(*cidr)
+	_, network, err := net.ParseCIDR(*defaultCidr)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -225,6 +292,10 @@ func main() {
 		100,
 		100)
 
+	dockerID, _ := getDockerID()
+	if len(dockerID) > 0 {
+		log.Printf("Docker id is '%s'\n", dockerID)
+	}
 	objMgr = ibclient.NewObjectManager(conn, *globalNamespace, *localNamespace, dockerID)
 
 	var fp map[string]func(http.ResponseWriter, *http.Request) = make(map[string]func(http.ResponseWriter, *http.Request))
@@ -245,7 +316,7 @@ func main() {
 		fmt.Fprintf(w, "{ \"Error\": \"%s\"}", r.URL.String())
 
 	})
-	l, err := net.Listen("unix", *socket)
+	l, err := net.Listen("unix", socketFile)
 	if err != nil {
 		log.Panic(err)
 	}

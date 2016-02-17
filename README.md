@@ -34,24 +34,26 @@ The "infoblox-ipam" driver accept a number of arguments which can be listed by s
 ```
 ubuntu$ ./infoblox-ipam --help
 Usage of ./infoblox-ipam:
-  -cidr string
-        Default Network CIDR if --subnet is not specified during docker network create (default "10.2.1.0/24")
+  -default-cidr string
+    			Default Network CIDR if --subnet is not specified during docker network create (default "10.2.1.0/24")
+  -driver-name string
+    		   Name of Infoblox IPAM driver (default "mddi")
   -global-view string
-        Infoblox Network View for Global Address Space (default "default")
+    		   Infoblox Network View for Global Address Space (default "default")
   -grid-host string
-        IP of Infoblox Grid Host (default "192.168.124.200")
+    		 IP of Infoblox Grid Host (default "192.168.124.200")
   -local-view string
-        Infoblox Network View for Local Address Space (default "default")
-  -socket string
-        Unix socket for infoblox-ipam driver (default "/run/docker/plugins/mddi.sock")
+    		  Infoblox Network View for Local Address Space (default "default")
+  -plugin-dir string
+    		  Docker plugin directory where driver socket is created (default "/run/docker/plugins")
   -wapi-password string
-        Infoblox WAPI Password
+    			 Infoblox WAPI Password
   -wapi-port string
-        Infoblox WAPI Port. (default "443")
+    		 Infoblox WAPI Port. (default "443")
   -wapi-username string
-        Infoblox WAPI Username
-  -wapi-ver string
-        Infoblox WAPI Version. (default "2.2")
+    			 Infoblox WAPI Username
+  -wapi-version string
+    			Infoblox WAPI Version. (default "2.2")
 ```
 
 For example,
