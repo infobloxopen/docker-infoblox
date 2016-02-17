@@ -15,6 +15,7 @@ To use the driver, you need access to the Infoblox DDI product. For evaluation p
 virtual version of the product from the Infoblox Download Center (https://www.infoblox.com/infoblox-download-center)
 Alternatively, if you are an existing Infoblox customer, you can download it from the support site.
 
+Refer to CONFIG.md on how to configure vNIOS.
 
 Build
 -----
@@ -35,25 +36,25 @@ The "infoblox-ipam" driver accept a number of arguments which can be listed by s
 ubuntu$ ./infoblox-ipam --help
 Usage of ./infoblox-ipam:
   -default-cidr string
-    			Default Network CIDR if --subnet is not specified during docker network create (default "10.2.1.0/24")
+    	Default Network CIDR if --subnet is not specified during docker network create (default "10.2.1.0/24")
   -driver-name string
-    		   Name of Infoblox IPAM driver (default "mddi")
+    	Name of Infoblox IPAM driver (default "mddi")
   -global-view string
-    		   Infoblox Network View for Global Address Space (default "default")
+    	Infoblox Network View for Global Address Space (default "default")
   -grid-host string
-    		 IP of Infoblox Grid Host (default "192.168.124.200")
+    	IP of Infoblox Grid Host (default "192.168.124.200")
   -local-view string
-    		  Infoblox Network View for Local Address Space (default "default")
+    	Infoblox Network View for Local Address Space (default "default")
   -plugin-dir string
-    		  Docker plugin directory where driver socket is created (default "/run/docker/plugins")
+    	Docker plugin directory where driver socket is created (default "/run/docker/plugins")
   -wapi-password string
-    			 Infoblox WAPI Password
+    	Infoblox WAPI Password
   -wapi-port string
-    		 Infoblox WAPI Port. (default "443")
+    	Infoblox WAPI Port. (default "443")
   -wapi-username string
-    			 Infoblox WAPI Username
+    	Infoblox WAPI Username
   -wapi-version string
-    			Infoblox WAPI Version. (default "2.2")
+    	Infoblox WAPI Version. (default "2.0")
 ```
 
 For example,
@@ -63,7 +64,7 @@ For example,
 ```
 The command need to be executed with root permission.
 
-For convenience, a script called "run.sh" is provided which can be editted to specify the desired options.
+For convenience, a script called "run.sh" is provided which can be edited to specify the desired options.
 
 
 Run Container

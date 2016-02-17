@@ -42,20 +42,28 @@ is checked out.
 
 Build Executable
 ----------------
-To build the infoblox-ipam driver, use the following command in the "docker-infoblox" source directory:
-
-```
-go build infoblox-ipam.go
-```
-This creates an executable called "infoblox-ipam".
+A Makefile is provided for automate the build process. To build the infoblox-ipam driver, just type
+```make``` in the "docker-infoblox" source directory. This creates an executable called "infoblox-ipam".
 
 Build Container Image
 ---------------------
-You have to first create the binary executable.
 To build container image using the Dockerfile in the "docker-infoblox" directory:
 
 ```
-docker build -t ipam-driver .
+make image
 ```
 
-This build a docker image called "ipam-driver" according to the Dockerfile in the current directory.
+Push Container Image to Docker Hub
+----------------------------------
+The Makefile also includes a build target to push the "ipam-driver" container image to your Docker Hub. To do that, you need
+to first setup the following environment variable:
+
+```
+export DOCKERHUB_ID="your-docker-hub-id"
+
+```
+You can then use the following command to push the "ipam-driver" image to your Docker Hub:
+
+```
+make push
+```
