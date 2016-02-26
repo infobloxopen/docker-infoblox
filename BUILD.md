@@ -1,5 +1,5 @@
-Build infoblox-ipam
-===================
+Build ipam-driver
+=================
 
 Prerequisite
 ------------
@@ -21,7 +21,7 @@ This would install "libnetwork" as well as its dependencies.
 "engine-api" is used by the infoblox-ipam driver to obtain the docker 
 engine id, which is used to populate the "Tenant ID" EA.
 
-"infoblox-go-client" is used by the infoblox-ipam driver to interact
+"infoblox-go-client" is used by the ipam-driver to interact
 with Infoblox.
 
 By default, the "master" branch of "libnetwork" and "docker" will be used. To build a
@@ -42,8 +42,8 @@ is checked out.
 
 Build Executable
 ----------------
-A Makefile is provided for automate the build process. To build the infoblox-ipam driver, just type
-```make``` in the "docker-infoblox" source directory. This creates an executable called "infoblox-ipam".
+A Makefile is provided for automate the build process. To build the ipam-driver, just type
+```make``` in the "docker-infoblox" source directory. This creates an executable called "ipam-driver".
 
 Build Container Image
 ---------------------

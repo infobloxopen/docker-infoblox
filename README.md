@@ -1,10 +1,10 @@
-infoblox-ipam
+ipam-driver
 =============
 
 Docker (libnetwork) driver for IPAM
 -----------------------------------
 
-infoblox-ipam is a Docker libnetwork driver that interfaces with Infoblox to provide IP Address Management
+ipam-driver is a Docker libnetwork driver that interfaces with Infoblox to provide IP Address Management
 services. libnetwork is the library provided by Docker that allows third-party drivers for container
 networking.
 
@@ -30,11 +30,11 @@ UNIX socket file ```/run/docker/plugins/mddi.sock``` does not exist so that the 
 
 Run Executable
 --------------
-The "infoblox-ipam" driver accept a number of arguments which can be listed by specifying -h:
+ipam-driver accepts a number of arguments which can be listed by specifying -h:
 
 ```
-ubuntu$ ./infoblox-ipam --help
-Usage of ./infoblox-ipam:
+ubuntu$ ./ipam-driver --help
+Usage of ./ipam-driver:
   -default-cidr string
     	Default Network CIDR if --subnet is not specified during docker network create (default "10.2.1.0/24")
   -driver-name string
@@ -60,7 +60,7 @@ Usage of ./infoblox-ipam:
 For example,
 
 ```
-./infoblox-ipam --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --global-view=global_view
+./ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --global-view=global_view
 ```
 The command need to be executed with root permission.
 

@@ -12,4 +12,4 @@ LOCAL_VIEW="default"
 DEFAULT_CIDR="10.2.1.0/24"
 
 
-./infoblox-ipam --grid-host=${GRID_HOST} --wapi-port=${WAPI_PORT} --wapi-username=${WAPI_USERNAME} --wapi-password=${WAPI_PASSWORD} --wapi-version=${WAPI_VERSION} --global-view=${GLOBAL_VIEW} --local-view=${LOCAL_VIEW} --default-cidr=${DEFAULT_CIDR} --plugin-dir=${PLUGIN_DIR} --driver-name=${DRIVER_NAME}
+./ipam-driver --grid-host=${GRID_HOST} --wapi-port=${WAPI_PORT} --wapi-username=${WAPI_USERNAME} --wapi-password=${WAPI_PASSWORD} --wapi-version=${WAPI_VERSION} --global-view=${GLOBAL_VIEW} --local-view=${LOCAL_VIEW} --default-cidr=${DEFAULT_CIDR} --plugin-dir=${PLUGIN_DIR} --driver-name=${DRIVER_NAME}

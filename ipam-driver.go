@@ -1,90 +1,242 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
+	apitypes "github.com/docker/engine-api/types"
 	ipamsapi "github.com/docker/libnetwork/ipams/remote/api"
-	netlabel "github.com/docker/libnetwork/netlabel"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
+	"io/ioutil"
 	"log"
+	"net"
+	"net/http"
+	"os"
+	"reflect"
 )
 
-type IpamDriver struct {
-	objMgr      *ibclient.ObjectManager
-	defaultPool string
+func dockerApiConnector(proto, addr string) (conn net.Conn, err error) {
+	return net.Dial("unix", "/var/run/docker.sock")
 }
 
-func (ipamDrv *IpamDriver) PluginActivate(r interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"Implements": []interface{}{
-			"IpamDriver",
-		}}, nil
-}
+func getDockerID() (dockerID string, err error) {
+	dockerID = ""
+	err = nil
 
-func (ipamDrv *IpamDriver) GetCapabilities(r interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{"RequiresMACAddress": true}, nil
-}
-
-func (ipamDrv *IpamDriver) GetDefaultAddressSpaces(r interface{}) (map[string]interface{}, error) {
-	globalView, localView := ipamDrv.objMgr.CreateDefaultNetviews()
-
-	return map[string]interface{}{"LocalDefaultAddressSpace": localView.Name, "GlobalDefaultAddressSpace": globalView.Name}, nil
-}
-
-func (ipamDrv *IpamDriver) RequestAddress(r interface{}) (map[string]interface{}, error) {
-	v := r.(*ipamsapi.RequestAddressRequest)
-
-	macAddr := v.Options[netlabel.MacAddress]
-	if len(macAddr) == 0 {
-		log.Printf("RequestAddressRequest contains empty MAC Address. '00:00:00:00:00:00' will be used.\n")
+	tr := &http.Transport{
+		Dial: dockerApiConnector,
 	}
-	network := ibclient.BuildNetworkFromRef(v.PoolID)
-	fixedAddr, _ := ipamDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, macAddr)
+	client := &http.Client{Transport: tr}
 
-	return map[string]interface{}{"Address": fmt.Sprintf("%s/24", fixedAddr.IPAddress)}, nil
-}
-
-func (ipamDrv *IpamDriver) ReleaseAddress(r interface{}) (map[string]interface{}, error) {
-	v := r.(*ipamsapi.ReleaseAddressRequest)
-
-	network := ibclient.BuildNetworkFromRef(v.PoolID)
-	ref, _ := ipamDrv.objMgr.ReleaseIP(network.NetviewName, v.Address)
-	if ref == "" {
-		log.Printf("***** IP Cannot be deleted '%s'! *******\n", v.Address)
+	var req *http.Request
+	req, err = http.NewRequest("GET", "http://fakehost/info", nil)
+	if err != nil {
+		log.Printf("Cannot create HTTP request: '%s'\n", err)
+		return
 	}
 
-	return map[string]interface{}{}, nil
-}
-
-func (ipamDrv *IpamDriver) RequestPool(r interface{}) (map[string]interface{}, error) {
-	v := r.(*ipamsapi.RequestPoolRequest)
-
-	pool := ipamDrv.defaultPool
-	if len(v.Pool) > 0 {
-		pool = v.Pool
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		log.Printf("Bad response querying for docker ID: '%s'\n", err)
+		return
 	}
-	netview := v.AddressSpace
-
-	network, _ := ipamDrv.objMgr.GetNetwork(netview, pool)
-	if network == nil {
-		network, _ = ipamDrv.objMgr.CreateNetwork(netview, pool)
-	}
-
-	return map[string]interface{}{"PoolID": network.Ref, "Pool": network.Cidr}, nil
-}
-
-func (ipamDrv *IpamDriver) ReleasePool(r interface{}) (map[string]interface{}, error) {
-	v := r.(*ipamsapi.ReleasePoolRequest)
-
-	if len(v.PoolID) > 0 {
-		ref, _ := ipamDrv.objMgr.DeleteLocalNetwork(v.PoolID)
-		if len(ref) > 0 {
-			log.Printf("Network %s deleted from Infoblox\n", v.PoolID)
+	if err != nil {
+		log.Printf("Error querying for docker ID: '%s'\n", err)
+		return
+	} else {
+		defer resp.Body.Close()
+		var contents []byte
+		contents, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("Http Reponse ioutil.ReadAll() Error: '%s'", err)
+			return
 		}
+
+		apiInfo := new(apitypes.Info)
+		err = json.Unmarshal(contents, &apiInfo)
+
+		if err != nil {
+			log.Printf("Error unmarshaling docker ID\n: '%s'", apiInfo.ID)
+			return
+		}
+		dockerID = apiInfo.ID
+
+		return
 	}
 
-	return map[string]interface{}{}, nil
+	return
 }
 
-func NewIpamDriver(objMgr *ibclient.ObjectManager, defaultPool string) *IpamDriver {
-	return &IpamDriver{objMgr: objMgr, defaultPool: defaultPool}
+func dirExists(dirname string) (bool, error) {
+	fileInfo, err := os.Stat(dirname)
+	if err == nil {
+		if fileInfo.IsDir() {
+			return true, nil
+		} else {
+			return false, nil
+		}
+	} else if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+func createDir(dirname string) error {
+	return os.MkdirAll(dirname, 0700)
+}
+
+func fileExists(filePath string) (bool, error) {
+	_, err := os.Stat(filePath)
+
+	if err == nil {
+		return true, nil
+	} else if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return true, err
+}
+
+func deleteFile(filePath string) error {
+	return os.Remove(filePath)
+}
+
+func setupSocket(pluginDir string, driverName string) string {
+	exists, err := dirExists(pluginDir)
+	if err != nil {
+		log.Panicf("Stat Plugin Directory error '%s'", err)
+		os.Exit(1)
+	}
+	if !exists {
+		err = createDir(pluginDir)
+		if err != nil {
+			log.Panicf("Create Plugin Directory error: '%s'", err)
+			os.Exit(1)
+		}
+		log.Printf("Created Plugin Directory: '%s'", pluginDir)
+	}
+
+	socketFile := pluginDir + "/" + driverName + ".sock"
+	exists, err = fileExists(socketFile)
+	if err != nil {
+		log.Panicf("Stat Socket File error: '%s'", err)
+		os.Exit(1)
+	}
+	if exists {
+		err = deleteFile(socketFile)
+		if err != nil {
+			log.Panicf("Delete Socket File error: '%s'", err)
+			os.Exit(1)
+		}
+		log.Printf("Deleted Old Socket File: '%s'", socketFile)
+	}
+
+	return socketFile
+}
+
+
+type ipamCall struct {
+	url string
+	f   func(r interface{}) (map[string]interface{}, error)
+	t   reflect.Type
+}
+
+func main() {
+	defaultCidr := flag.String("default-cidr", "10.2.1.0/24", "Default Network CIDR if --subnet is not specified during docker network create")
+	gridHostVar := flag.String("grid-host", "192.168.124.200", "IP of Infoblox Grid Host")
+	wapiVerVar := flag.String("wapi-version", "2.0", "Infoblox WAPI Version.")
+	wapiPortVar := flag.String("wapi-port", "443", "Infoblox WAPI Port.")
+	globalNetview := flag.String("global-view", "default", "Infoblox Network View for Global Address Space")
+	localNetview := flag.String("local-view", "default", "Infoblox Network View for Local Address Space")
+	wapiUsername := flag.String("wapi-username", "", "Infoblox WAPI Username")
+	wapiPassword := flag.String("wapi-password", "", "Infoblox WAPI Password")
+	pluginDir := flag.String("plugin-dir", "/run/docker/plugins", "Docker plugin directory where driver socket is created")
+	driverName := flag.String("driver-name", "mddi", "Name of Infoblox IPAM driver")
+
+	flag.Parse()
+
+	socketFile := setupSocket(*pluginDir, *driverName)
+	log.Printf("Driver Name: '%s'", *driverName)
+	log.Printf("Socket File: '%s'", socketFile)
+
+	_, network, err := net.ParseCIDR(*defaultCidr)
+	if err != nil {
+		log.Panic(err)
+	}
+	cidr := network.String()
+	log.Printf("Default Network CIDR: %s\n", cidr)
+
+	conn := ibclient.NewConnector(
+		*gridHostVar,
+		*wapiVerVar,
+		*wapiPortVar,
+		*wapiUsername,
+		*wapiPassword,
+		false,
+		"",
+		120,
+		100,
+		100)
+
+	dockerID, _ := getDockerID()
+	if len(dockerID) > 0 {
+		log.Printf("Docker id is '%s'\n", dockerID)
+	}
+	objMgr := ibclient.NewObjectManager(conn, dockerID)
+
+	ipamDrv := NewInfobloxDriver(objMgr, *globalNetview, *localNetview, cidr)
+	ipamCalls := []ipamCall{
+		{"/Plugin.Activate", ipamDrv.PluginActivate, nil},
+		{"/IpamDriver.GetCapabilities", ipamDrv.GetCapabilities, nil},
+		{"/IpamDriver.GetDefaultAddressSpaces", ipamDrv.GetDefaultAddressSpaces, nil},
+		{"/IpamDriver.RequestPool", ipamDrv.RequestPool,
+			reflect.TypeOf(ipamsapi.RequestPoolRequest{})},
+		{"/IpamDriver.ReleasePool", ipamDrv.ReleasePool,
+			reflect.TypeOf(ipamsapi.ReleasePoolRequest{})},
+		{"/IpamDriver.RequestAddress", ipamDrv.RequestAddress,
+			reflect.TypeOf(ipamsapi.RequestAddressRequest{})},
+		{"/IpamDriver.ReleaseAddress", ipamDrv.ReleaseAddress,
+			reflect.TypeOf(ipamsapi.ReleaseAddressRequest{})},
+	}
+
+	handlers := make(map[string]ipamCall)
+
+	for _, v := range ipamCalls {
+		handlers[v.url] = v
+	}
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		url := r.URL.String()
+		log.Printf("Plugin: %s\n", url)
+		if c, ok := handlers[url]; ok {
+
+			//var req interface{}
+			var req interface{}=nil
+			if c.t != nil {
+				req = reflect.New(c.t).Interface()
+				if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+					log.Printf("%s: Bad Request Error: %s\n", url, err)
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+			}
+			
+			res, _ := c.f(req)
+			log.Printf("res is '%s'\n", res)
+			if err := json.NewEncoder(w).Encode(res); err != nil {
+				log.Printf("%s: Bad Response Error: %s\n", url, err)
+			}
+		}
+		fmt.Fprintf(w, "{ \"Error\": \"%s\"}", url)
+	})
+
+	l, err := net.Listen("unix", socketFile)
+	if err != nil {
+		log.Panic(err)
+	}
+	if err := http.Serve(l, nil); err != nil {
+		log.Panic(err)
+	}
+
+	os.Exit(0)
 }
