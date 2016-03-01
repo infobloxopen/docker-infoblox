@@ -1,4 +1,5 @@
-BINARY_NAME=infoblox-ipam
+SOURCES=ipam-driver.go infoblox-ipam.go
+BINARY_NAME=ipam-driver
 IMAGE_NAME=ipam-driver
 LOCAL_IMAGE=$(IMAGE_NAME)
 DEV_IMAGE=$(DOCKERHUB_ID)/$(IMAGE_NAME)  # Requires DOCKERHUB_ID environment variable
@@ -28,7 +29,7 @@ push-release: image
 	docker push $(RELEASE_IMAGE)
 
 $(BINARY_NAME): *.go
-	go build $(BINARY_NAME).go
+	go build -o $(BINARY_NAME) ${SOURCES}
 
 # Delete binary for clean build
 clean:

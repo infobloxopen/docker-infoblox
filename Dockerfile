@@ -1,6 +1,6 @@
 FROM ubuntu
 
-ADD infoblox-ipam /
+ADD ipam-driver /
 
 
-ENTRYPOINT ["/infoblox-ipam"]
+ENTRYPOINT ["/ipam-driver"]
