@@ -134,7 +134,6 @@ func setupSocket(pluginDir string, driverName string) string {
 	return socketFile
 }
 
-
 type ipamCall struct {
 	url string
 	f   func(r interface{}) (map[string]interface{}, error)
@@ -142,29 +141,25 @@ type ipamCall struct {
 }
 
 func main() {
-	defaultCidr := flag.String("default-cidr", "10.2.1.0/24", "Default Network CIDR if --subnet is not specified during docker network create")
 	gridHostVar := flag.String("grid-host", "192.168.124.200", "IP of Infoblox Grid Host")
 	wapiVerVar := flag.String("wapi-version", "2.0", "Infoblox WAPI Version.")
 	wapiPortVar := flag.String("wapi-port", "443", "Infoblox WAPI Port.")
-	globalNetview := flag.String("global-view", "default", "Infoblox Network View for Global Address Space")
-	localNetview := flag.String("local-view", "default", "Infoblox Network View for Local Address Space")
 	wapiUsername := flag.String("wapi-username", "", "Infoblox WAPI Username")
 	wapiPassword := flag.String("wapi-password", "", "Infoblox WAPI Password")
 	pluginDir := flag.String("plugin-dir", "/run/docker/plugins", "Docker plugin directory where driver socket is created")
 	driverName := flag.String("driver-name", "mddi", "Name of Infoblox IPAM driver")
+	globalNetview := flag.String("global-view", "default", "Infoblox Network View for Global Address Space")
+	globalNetworkContainer := flag.String("global-network-container", "172.18.0.0/16", "Subnets will be allocated from this container when --subnet is not specified during network creation")
+	globalPrefixLength := flag.Uint("global-prefix-length", 24, "The default CIDR prefix length when allocating a global subnet.")
+	localNetview := flag.String("local-view", "default", "Infoblox Network View for Local Address Space")
+	localNetworkContainer := flag.String("local-network-container", "192.168.0.0/16", "Subnets will be allocated from this container when --subnet is not specified during network creation")
+	localPrefixLength := flag.Uint("local-prefix-length", 24, "The default CIDR prefix length when allocating a local subnet.")
 
 	flag.Parse()
 
 	socketFile := setupSocket(*pluginDir, *driverName)
 	log.Printf("Driver Name: '%s'", *driverName)
 	log.Printf("Socket File: '%s'", socketFile)
-
-	_, network, err := net.ParseCIDR(*defaultCidr)
-	if err != nil {
-		log.Panic(err)
-	}
-	cidr := network.String()
-	log.Printf("Default Network CIDR: %s\n", cidr)
 
 	conn := ibclient.NewConnector(
 		*gridHostVar,
@@ -184,7 +179,8 @@ func main() {
 	}
 	objMgr := ibclient.NewObjectManager(conn, dockerID)
 
-	ipamDrv := NewInfobloxDriver(objMgr, *globalNetview, *localNetview, cidr)
+	ipamDrv := NewInfobloxDriver(objMgr, *globalNetview, *globalNetworkContainer, *globalPrefixLength,
+		*localNetview, *localNetworkContainer, *localPrefixLength)
 	ipamCalls := []ipamCall{
 		{"/Plugin.Activate", ipamDrv.PluginActivate, nil},
 		{"/IpamDriver.GetCapabilities", ipamDrv.GetCapabilities, nil},
@@ -211,7 +207,7 @@ func main() {
 		if c, ok := handlers[url]; ok {
 
 			//var req interface{}
-			var req interface{}=nil
+			var req interface{} = nil
 			if c.t != nil {
 				req = reflect.New(c.t).Interface()
 				if err := json.NewDecoder(r.Body).Decode(req); err != nil {
@@ -220,11 +216,14 @@ func main() {
 					return
 				}
 			}
-			
-			res, _ := c.f(req)
-			log.Printf("res is '%s'\n", res)
-			if err := json.NewEncoder(w).Encode(res); err != nil {
-				log.Printf("%s: Bad Response Error: %s\n", url, err)
+
+			res, err := c.f(req)
+			if err != nil || res == nil {
+				http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+			} else {
+				if err := json.NewEncoder(w).Encode(res); err != nil {
+					log.Printf("%s: Bad Response Error: %s\n", url, err)
+				}
 			}
 		}
 		fmt.Fprintf(w, "{ \"Error\": \"%s\"}", url)

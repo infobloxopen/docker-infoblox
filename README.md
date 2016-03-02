@@ -35,32 +35,38 @@ ipam-driver accepts a number of arguments which can be listed by specifying -h:
 ```
 ubuntu$ ./ipam-driver --help
 Usage of ./ipam-driver:
-  -default-cidr string
-    	Default Network CIDR if --subnet is not specified during docker network create (default "10.2.1.0/24")
   -driver-name string
-    	Name of Infoblox IPAM driver (default "mddi")
+        Name of Infoblox IPAM driver (default "mddi")
+  -global-network-container string
+        Subnets will be allocated from this container when --subnet is not specified during network creation (default "172.18.0.0/16")
+  -global-prefix-length uint
+        The default CIDR prefix length when allocating a global subnet. (default 24)
   -global-view string
-    	Infoblox Network View for Global Address Space (default "default")
+        Infoblox Network View for Global Address Space (default "default")
   -grid-host string
-    	IP of Infoblox Grid Host (default "192.168.124.200")
+        IP of Infoblox Grid Host (default "192.168.124.200")
+  -local-network-container string
+        Subnets will be allocated from this container when --subnet is not specified during network creation (default "192.168.0.0/16")
+  -local-prefix-length uint
+        The default CIDR prefix length when allocating a local subnet. (default 24)
   -local-view string
-    	Infoblox Network View for Local Address Space (default "default")
+        Infoblox Network View for Local Address Space (default "default")
   -plugin-dir string
-    	Docker plugin directory where driver socket is created (default "/run/docker/plugins")
+        Docker plugin directory where driver socket is created (default "/run/docker/plugins")
   -wapi-password string
-    	Infoblox WAPI Password
+        Infoblox WAPI Password
   -wapi-port string
-    	Infoblox WAPI Port. (default "443")
+        Infoblox WAPI Port. (default "443")
   -wapi-username string
-    	Infoblox WAPI Username
+        Infoblox WAPI Username
   -wapi-version string
-    	Infoblox WAPI Version. (default "2.0")
+        Infoblox WAPI Version. (default "2.0")
 ```
 
 For example,
 
 ```
-./ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --global-view=global_view
+./ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --local-view=global_view --local-network-container="192.168.0.0/24,192.169.0.0/24" --local-prefix-length=24
 ```
 The command need to be executed with root permission.
 
@@ -93,7 +99,15 @@ To start using the dirver, a docker network needs to be created specifying the d
 sudo docker network create --ipam-driver=mddi mddi-net
 ```
 This creates a docker network called "mddi-net" which uses "mddi" as the IPAM driver and the default "bridge"
-driver as the network driver.
+driver as the network driver. A network will be automatically allocated from the list of network containers
+specified during driver start up.
+
+By default, the network will be created using the default prefix length specified during driver start up. You
+can override this using the --ipam-opt option. For example:
+
+```
+sudo docker network create --ipam-driver=mddi --ipam-opt="prefix-length=20" mddi-net-2
+```
 
 After which, Docker containers can be started attaching to the "mddi-net" network created above. For example,
 the following command run the "ubuntu" image:
