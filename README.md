@@ -53,6 +53,8 @@ Usage of ./ipam-driver:
         Infoblox Network View for Local Address Space (default "default")
   -plugin-dir string
         Docker plugin directory where driver socket is created (default "/run/docker/plugins")
+  -ssl-verify string
+        Specifies whether (true/false) to verify server certificate. If a file path is specified, it is assumed to be a certificate file and will be used to verify server certificate.
   -wapi-password string
         Infoblox WAPI Password
   -wapi-port string
