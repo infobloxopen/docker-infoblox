@@ -48,11 +48,11 @@ func (ibDrv *InfobloxDriver) GetCapabilities(r interface{}) (map[string]interfac
 }
 
 func (ibDrv *InfobloxDriver) GetDefaultAddressSpaces(r interface{}) (map[string]interface{}, error) {
-	globalViewRef, localViewRef := ibDrv.objMgr.CreateDefaultNetviews(
+	globalViewRef, localViewRef, err := ibDrv.objMgr.CreateDefaultNetviews(
 		ibDrv.addressSpaceByScope[GLOBAL].NetviewName,
 		ibDrv.addressSpaceByScope[LOCAL].NetviewName)
 
-	return map[string]interface{}{"GlobalDefaultAddressSpace": globalViewRef, "LocalDefaultAddressSpace": localViewRef}, nil
+	return map[string]interface{}{"GlobalDefaultAddressSpace": globalViewRef, "LocalDefaultAddressSpace": localViewRef}, err
 }
 
 func getPrefixLength(cidr string) (prefixLength string) {

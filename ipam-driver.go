@@ -146,6 +146,7 @@ func main() {
 	wapiPortVar := flag.String("wapi-port", "443", "Infoblox WAPI Port.")
 	wapiUsername := flag.String("wapi-username", "", "Infoblox WAPI Username")
 	wapiPassword := flag.String("wapi-password", "", "Infoblox WAPI Password")
+	sslVerify := flag.String("ssl-verify", "false", "Specifies whether (true/false) to verify server certificate. If a file path is specified, it is assumed to be a certificate file and will be used to verify server certificate.")
 	pluginDir := flag.String("plugin-dir", "/run/docker/plugins", "Docker plugin directory where driver socket is created")
 	driverName := flag.String("driver-name", "mddi", "Name of Infoblox IPAM driver")
 	globalNetview := flag.String("global-view", "default", "Infoblox Network View for Global Address Space")
@@ -161,17 +162,20 @@ func main() {
 	log.Printf("Driver Name: '%s'", *driverName)
 	log.Printf("Socket File: '%s'", socketFile)
 
-	conn := ibclient.NewConnector(
+	conn, err := ibclient.NewConnector(
 		*gridHostVar,
 		*wapiVerVar,
 		*wapiPortVar,
 		*wapiUsername,
 		*wapiPassword,
-		false,
-		"",
+		*sslVerify,
 		120,
 		100,
 		100)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	dockerID, _ := getDockerID()
 	if len(dockerID) > 0 {
@@ -219,6 +223,11 @@ func main() {
 
 			res, err := c.f(req)
 			if err != nil || res == nil {
+				if err != nil {
+					log.Printf("IPAM Driver error '%s'", err)
+				} else if res == nil {
+					log.Printf("IPAM Driver returned nil result")
+				}
 				http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
 			} else {
 				if err := json.NewEncoder(w).Encode(res); err != nil {
