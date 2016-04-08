@@ -26,6 +26,21 @@ are based.
 The following additional steps are required:
 - You need to give cloud-api admin user permission to create and modify DNS Views. Instructions on how to add permission to "cloud-api-only" group is included in the video. Follow the same instructions to add "All DNS Views" permission under the "DNS Permissions" Permssion Type.
 
+Manual Configuration of Cloud Extensible Attributes
+---------------------------------------------------
+If the "Cloud Network Automation" licensed feature is not activiated, the following Cloud Extensible Attributes must
+be manually defined in Infoblox:
+
+- ```Cloud API Owned``` - Type: List; Values: True, False
+
+- ```CMP Type``` - Type: String
+
+- ```Tenant ID``` - Type: String
+
+The User Interface to add Extensible Attribute definitions can be found under the main tab "Administration" and under the
+sub-tab "Extensible Attributes".
+
+
 IPAM Driver Configuration
 -------------------------
 Based on the vNIOS configuration, update the following driver configuration:
