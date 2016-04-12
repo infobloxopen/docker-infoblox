@@ -23,10 +23,9 @@ Build
 
 Installation
 ------------
-Installation is fairly simple. Make sure the directory ```/run/docker/plugins/``` exists and the
-UNIX socket file ```/run/docker/plugins/mddi.sock``` does not exist so that the driver could write to
-```/run/docker/plugins/mddi.sock``` .
-
+By default, the ipam-driver assumes that the "Cloud Network Automation" licensed feature is activated. Should
+this not be the case, refer to "Manual Configuration of Cloud Extensible Attributes" in CONFIG.md for additional
+configuration required.
 
 Run Executable
 --------------
@@ -68,7 +67,7 @@ Usage of ./ipam-driver:
 For example,
 
 ```
-./ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --local-view=global_view --local-network-container="192.168.0.0/24,192.169.0.0/24" --local-prefix-length=24
+./ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --local-view=local_view --local-network-container="192.168.0.0/20,192.169.0.0/22" --local-prefix-length=25 --global-view=global_view --global-network-container="172.18.0.0/16" --global-prefix-length=24
 ```
 The command need to be executed with root permission.
 
@@ -86,7 +85,7 @@ docker pull infoblox/ipam-driver
 
 After successfully pulling the image, you use the ```docker run``` command to run the driver. For exampe:
 ```
-docker run -v /var/run:/var/run -v /run/docker:/run/docker infoblox/ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --global-view=global_view
+docker run -v /var/run:/var/run -v /run/docker:/run/docker infoblox/ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --local-view=local_view --local-network-container="192.168.0.0/20,192.169.0.0/22" --local-prefix-length=25 --global-view=global_view --global-network-container="172.18.0.0/16" --global-prefix-length=24
 ```
 
 Note that the -v options are necessary to provide the container access to the specified directories on the
@@ -96,11 +95,11 @@ For convenience, a script called "run-container.sh" is provided.
 
 Usage
 -----
-To start using the dirver, a docker network needs to be created specifying the driver using the --ipam-driver option:
+To start using the driver, a docker network needs to be created specifying the driver using the --ipam-driver option:
 ```
-sudo docker network create --ipam-driver=mddi mddi-net
+sudo docker network create --ipam-driver=infoblox priv-net
 ```
-This creates a docker network called "mddi-net" which uses "mddi" as the IPAM driver and the default "bridge"
+This creates a docker network called "priv-net" which uses "infoblox" as the IPAM driver and the default "bridge"
 driver as the network driver. A network will be automatically allocated from the list of network containers
 specified during driver start up.
 
@@ -108,14 +107,14 @@ By default, the network will be created using the default prefix length specifie
 can override this using the --ipam-opt option. For example:
 
 ```
-sudo docker network create --ipam-driver=mddi --ipam-opt="prefix-length=20" mddi-net-2
+sudo docker network create --ipam-driver=infoblox --ipam-opt="prefix-length=24" priv-net-2
 ```
 
-After which, Docker containers can be started attaching to the "mddi-net" network created above. For example,
+After which, Docker containers can be started attaching to the "priv-net" network created above. For example,
 the following command run the "ubuntu" image:
 
 ```
-sudo docker run -i -t --net=mddi-net --name=ubuntu1 ubuntu
+sudo docker run -i -t --net=priv-net --name=ubuntu1 ubuntu
 ```
 
 When the container comes up, verify using the "ifconfig" command that IP has been successfully provisioned
