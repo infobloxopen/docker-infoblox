@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	apitypes "github.com/docker/engine-api/types"
 	ipamsapi "github.com/docker/libnetwork/ipams/remote/api"
@@ -141,34 +140,19 @@ type ipamCall struct {
 }
 
 func main() {
-	gridHostVar := flag.String("grid-host", "192.168.124.200", "IP of Infoblox Grid Host")
-	wapiVerVar := flag.String("wapi-version", "2.0", "Infoblox WAPI Version.")
-	wapiPortVar := flag.String("wapi-port", "443", "Infoblox WAPI Port.")
-	wapiUsername := flag.String("wapi-username", "", "Infoblox WAPI Username")
-	wapiPassword := flag.String("wapi-password", "", "Infoblox WAPI Password")
-	sslVerify := flag.String("ssl-verify", "false", "Specifies whether (true/false) to verify server certificate. If a file path is specified, it is assumed to be a certificate file and will be used to verify server certificate.")
-	pluginDir := flag.String("plugin-dir", "/run/docker/plugins", "Docker plugin directory where driver socket is created")
-	driverName := flag.String("driver-name", "mddi", "Name of Infoblox IPAM driver")
-	globalNetview := flag.String("global-view", "default", "Infoblox Network View for Global Address Space")
-	globalNetworkContainer := flag.String("global-network-container", "172.18.0.0/16", "Subnets will be allocated from this container when --subnet is not specified during network creation")
-	globalPrefixLength := flag.Uint("global-prefix-length", 24, "The default CIDR prefix length when allocating a global subnet.")
-	localNetview := flag.String("local-view", "default", "Infoblox Network View for Local Address Space")
-	localNetworkContainer := flag.String("local-network-container", "192.168.0.0/16", "Subnets will be allocated from this container when --subnet is not specified during network creation")
-	localPrefixLength := flag.Uint("local-prefix-length", 24, "The default CIDR prefix length when allocating a local subnet.")
+	config := LoadConfig()
 
-	flag.Parse()
-
-	socketFile := setupSocket(*pluginDir, *driverName)
-	log.Printf("Driver Name: '%s'", *driverName)
+	socketFile := setupSocket(config.PluginDir, config.DriverName)
+	log.Printf("Driver Name: '%s'", config.DriverName)
 	log.Printf("Socket File: '%s'", socketFile)
 
 	conn, err := ibclient.NewConnector(
-		*gridHostVar,
-		*wapiVerVar,
-		*wapiPortVar,
-		*wapiUsername,
-		*wapiPassword,
-		*sslVerify,
+		config.GridHost,
+		config.WapiVer,
+		config.WapiPort,
+		config.WapiUsername,
+		config.WapiPassword,
+		config.SslVerify,
 		120,
 		100,
 		100)
@@ -183,8 +167,8 @@ func main() {
 	}
 	objMgr := ibclient.NewObjectManager(conn, dockerID)
 
-	ipamDrv := NewInfobloxDriver(objMgr, *globalNetview, *globalNetworkContainer, *globalPrefixLength,
-		*localNetview, *localNetworkContainer, *localPrefixLength)
+	ipamDrv := NewInfobloxDriver(objMgr, config.GlobalNetview, config.GlobalNetworkContainer, config.GlobalPrefixLength,
+		config.LocalNetview, config.LocalNetworkContainer, config.LocalPrefixLength)
 	ipamCalls := []ipamCall{
 		{"/Plugin.Activate", ipamDrv.PluginActivate, nil},
 		{"/IpamDriver.GetCapabilities", ipamDrv.GetCapabilities, nil},

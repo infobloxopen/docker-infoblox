@@ -1,4 +1,4 @@
-SOURCES=ipam-driver.go infoblox-ipam.go
+SOURCES=ipam-driver.go infoblox-ipam.go config.go
 BINARY_NAME=ipam-driver
 IMAGE_NAME=ipam-driver
 LOCAL_IMAGE=$(IMAGE_NAME)
