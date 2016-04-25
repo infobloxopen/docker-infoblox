@@ -153,9 +153,9 @@ func main() {
 		config.WapiUsername,
 		config.WapiPassword,
 		config.SslVerify,
-		120,
-		100,
-		100)
+		config.HttpRequestTimeout,
+		config.HttpPoolConnections,
+		config.HttpPoolMaxSize)
 
 	if err != nil {
 		log.Fatal(err)

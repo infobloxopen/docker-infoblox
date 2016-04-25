@@ -5,9 +5,12 @@ LOCAL_IMAGE=$(IMAGE_NAME)
 DEV_IMAGE=$(DOCKERHUB_ID)/$(IMAGE_NAME)  # Requires DOCKERHUB_ID environment variable
 RELEASE_IMAGE=infoblox/$(IMAGE_NAME)
 
+CREATE_EA_DEFS=create_ea_defs
+CREATE_EA_DEFS_SOURCES=create_ea_defs.go config.go constants.go
+
 
 # Build binary - this is the default target
-build: $(BINARY_NAME)
+build: $(BINARY_NAME) $(CREATE_EA_DEFS)
 
 
 # Build binary and docker image
@@ -28,12 +31,15 @@ push-release: image
 	docker tag $(LOCAL_IMAGE) $(RELEASE_IMAGE)
 	docker push $(RELEASE_IMAGE)
 
-$(BINARY_NAME): *.go
+$(BINARY_NAME): $(SOURCES)
 	go build -o $(BINARY_NAME) ${SOURCES}
+
+$(CREATE_EA_DEFS): $(CREATE_EA_DEFS_SOURCES)
+	go build -o $(CREATE_EA_DEFS) ${CREATE_EA_DEFS_SOURCES}
 
 # Delete binary for clean build
 clean:
-	rm -f $(BINARY_NAME)
+	rm -f $(BINARY_NAME) $(CREATE_EA_DEFS)
 
 # Delete local docker images
 clean-images:

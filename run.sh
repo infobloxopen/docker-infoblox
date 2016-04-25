@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DRIVER_NAME="mddi"
+DRIVER_NAME="infoblox"
 PLUGIN_DIR="/run/docker/plugins"
 GRID_HOST="192.168.124.200"
 WAPI_PORT="443"
