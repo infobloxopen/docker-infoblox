@@ -4,13 +4,22 @@ import (
 	"flag"
 )
 
+const (
+	HTTP_REQUEST_TIMEOUT  = 120
+	HTTP_POOL_CONNECTIONS = 100
+	HTTP_POOL_MAX_SIZE    = 100
+)
+
 type GridConfig struct {
-	GridHost     string
-	WapiVer      string
-	WapiPort     string
-	WapiUsername string
-	WapiPassword string
-	SslVerify    string
+	GridHost            string
+	WapiVer             string
+	WapiPort            string
+	WapiUsername        string
+	WapiPassword        string
+	SslVerify           string
+	HttpRequestTimeout  int
+	HttpPoolConnections int
+	HttpPoolMaxSize     int
 }
 
 type DriverConfig struct {
@@ -38,6 +47,10 @@ func LoadConfig() (config *Config) {
 	flag.StringVar(&config.WapiUsername, "wapi-username", "", "Infoblox WAPI Username")
 	flag.StringVar(&config.WapiPassword, "wapi-password", "", "Infoblox WAPI Password")
 	flag.StringVar(&config.SslVerify, "ssl-verify", "false", "Specifies whether (true/false) to verify server certificate. If a file path is specified, it is assumed to be a certificate file and will be used to verify server certificate.")
+	config.HttpRequestTimeout = HTTP_REQUEST_TIMEOUT
+	config.HttpPoolConnections = HTTP_POOL_CONNECTIONS
+	config.HttpPoolMaxSize = HTTP_POOL_MAX_SIZE
+
 	flag.StringVar(&config.PluginDir, "plugin-dir", "/run/docker/plugins", "Docker plugin directory where driver socket is created")
 	flag.StringVar(&config.DriverName, "driver-name", "mddi", "Name of Infoblox IPAM driver")
 	flag.StringVar(&config.GlobalNetview, "global-view", "default", "Infoblox Network View for Global Address Space")
