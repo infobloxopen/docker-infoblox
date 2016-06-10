@@ -23,7 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	objMgr := ibclient.NewObjectManager(conn, "")
+	objMgr := ibclient.NewObjectManager(conn, "Docker", "")
 
 	reqEaDefs := GetRequiredEADefs()
 	for _, e := range reqEaDefs {

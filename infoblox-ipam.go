@@ -68,7 +68,7 @@ func (ibDrv *InfobloxDriver) RequestAddress(r interface{}) (map[string]interface
 		log.Printf("RequestAddressRequest contains empty MAC Address. '00:00:00:00:00:00' will be used.\n")
 	}
 	network := ibclient.BuildNetworkFromRef(v.PoolID)
-	fixedAddr, _ := ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, macAddr)
+	fixedAddr, _ := ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, "", macAddr, "")
 
 	return map[string]interface{}{"Address": fmt.Sprintf("%s/%s", fixedAddr.IPAddress, getPrefixLength(network.Cidr))}, nil
 }
@@ -77,7 +77,7 @@ func (ibDrv *InfobloxDriver) ReleaseAddress(r interface{}) (map[string]interface
 	v := r.(*ipamsapi.ReleaseAddressRequest)
 	log.Printf("Releasing Address '%s' from Pool '%s'\n", v.Address, v.PoolID)
 	network := ibclient.BuildNetworkFromRef(v.PoolID)
-	ref, _ := ibDrv.objMgr.ReleaseIP(network.NetviewName, v.Address)
+	ref, _ := ibDrv.objMgr.ReleaseIP(network.NetviewName, v.Address, "")
 	if ref == "" {
 		log.Printf("***** IP Cannot be deleted '%s'! *******\n", v.Address)
 	}
@@ -86,9 +86,9 @@ func (ibDrv *InfobloxDriver) ReleaseAddress(r interface{}) (map[string]interface
 }
 
 func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string) (*ibclient.Network, error) {
-	network, err := ibDrv.objMgr.GetNetwork(netview, pool)
+	network, err := ibDrv.objMgr.GetNetwork(netview, pool, nil)
 	if network == nil {
-		network, err = ibDrv.objMgr.CreateNetwork(netview, pool)
+		network, err = ibDrv.objMgr.CreateNetwork(netview, pool, "")
 	}
 
 	return network, err
@@ -133,7 +133,7 @@ func (ibDrv *InfobloxDriver) allocateNetworkHelper(addrSpace *InfobloxAddressSpa
 				return nil, err
 			}
 		}
-		network, err = ibDrv.objMgr.AllocateNetwork(addrSpace.NetviewName, container.NetworkContainer, prefixLen)
+		network, err = ibDrv.objMgr.AllocateNetwork(addrSpace.NetviewName, container.NetworkContainer, prefixLen, "")
 		if network != nil {
 			break
 		}
@@ -198,7 +198,7 @@ func (ibDrv *InfobloxDriver) ReleasePool(r interface{}) (map[string]interface{},
 }
 
 func makeContainers(containerList string) []Container {
-	containers := make([]Container, 0)
+	var containers []Container
 
 	parts := strings.Split(containerList, ",")
 	for _, p := range parts {
