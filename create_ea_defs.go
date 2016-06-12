@@ -16,8 +16,7 @@ func main() {
 		config.WapiPassword,
 		config.SslVerify,
 		config.HttpRequestTimeout,
-		config.HttpPoolConnections,
-		config.HttpPoolMaxSize)
+		config.HttpPoolConnections)
 
 	if err != nil {
 		log.Fatal(err)
