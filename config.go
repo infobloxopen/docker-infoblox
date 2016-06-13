@@ -49,7 +49,7 @@ func LoadConfig() (config *Config) {
 	config.HttpPoolConnections = HTTP_POOL_CONNECTIONS
 
 	flag.StringVar(&config.PluginDir, "plugin-dir", "/run/docker/plugins", "Docker plugin directory where driver socket is created")
-	flag.StringVar(&config.DriverName, "driver-name", "mddi", "Name of Infoblox IPAM driver")
+	flag.StringVar(&config.DriverName, "driver-name", "infoblox", "Name of Infoblox IPAM driver")
 	flag.StringVar(&config.GlobalNetview, "global-view", "default", "Infoblox Network View for Global Address Space")
 	flag.StringVar(&config.GlobalNetworkContainer, "global-network-container", "172.18.0.0/16", "Subnets will be allocated from this container when --subnet is not specified during network creation")
 	flag.UintVar(&config.GlobalPrefixLength, "global-prefix-length", 24, "The default CIDR prefix length when allocating a global subnet.")

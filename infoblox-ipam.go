@@ -62,13 +62,31 @@ func getPrefixLength(cidr string) (prefixLength string) {
 
 func (ibDrv *InfobloxDriver) RequestAddress(r interface{}) (map[string]interface{}, error) {
 	v := r.(*ipamsapi.RequestAddressRequest)
+	network := ibclient.BuildNetworkFromRef(v.PoolID)
 
 	macAddr := v.Options[netlabel.MacAddress]
 	if len(macAddr) == 0 {
-		log.Printf("RequestAddressRequest contains empty MAC Address. '00:00:00:00:00:00' will be used.\n")
+		macAddr = ibclient.MACADDR_ZERO
+		log.Printf("RequestAddressRequest contains empty MAC Address. '%s' will be used.\n", macAddr)
 	}
-	network := ibclient.BuildNetworkFromRef(v.PoolID)
-	fixedAddr, _ := ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, "", macAddr, "")
+
+	var fixedAddr *ibclient.FixedAddress
+	if v.Address != "" {
+		fixedAddr, _ = ibDrv.objMgr.GetFixedAddress(network.NetviewName, v.Address, "")
+
+		if fixedAddr != nil {
+			if fixedAddr.Mac != macAddr {
+				log.Printf("Requested IP address '%s' is already used by a difference MAC address '%s' (%s)",
+					v.Address, fixedAddr.Mac, macAddr)
+
+				return nil, nil
+			}
+		}
+	}
+
+	if fixedAddr == nil {
+		fixedAddr, _ = ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, v.Address, macAddr, "")
+	}
 
 	return map[string]interface{}{"Address": fmt.Sprintf("%s/%s", fixedAddr.IPAddress, getPrefixLength(network.Cidr))}, nil
 }
