@@ -5,9 +5,8 @@ import (
 )
 
 const (
-	HTTP_REQUEST_TIMEOUT  = 120
-	HTTP_POOL_CONNECTIONS = 100
-	HTTP_POOL_MAX_SIZE    = 100
+	HTTP_REQUEST_TIMEOUT  = 60
+	HTTP_POOL_CONNECTIONS = 10
 )
 
 type GridConfig struct {
@@ -19,7 +18,6 @@ type GridConfig struct {
 	SslVerify           string
 	HttpRequestTimeout  int
 	HttpPoolConnections int
-	HttpPoolMaxSize     int
 }
 
 type DriverConfig struct {
@@ -49,10 +47,9 @@ func LoadConfig() (config *Config) {
 	flag.StringVar(&config.SslVerify, "ssl-verify", "false", "Specifies whether (true/false) to verify server certificate. If a file path is specified, it is assumed to be a certificate file and will be used to verify server certificate.")
 	config.HttpRequestTimeout = HTTP_REQUEST_TIMEOUT
 	config.HttpPoolConnections = HTTP_POOL_CONNECTIONS
-	config.HttpPoolMaxSize = HTTP_POOL_MAX_SIZE
 
 	flag.StringVar(&config.PluginDir, "plugin-dir", "/run/docker/plugins", "Docker plugin directory where driver socket is created")
-	flag.StringVar(&config.DriverName, "driver-name", "mddi", "Name of Infoblox IPAM driver")
+	flag.StringVar(&config.DriverName, "driver-name", "infoblox", "Name of Infoblox IPAM driver")
 	flag.StringVar(&config.GlobalNetview, "global-view", "default", "Infoblox Network View for Global Address Space")
 	flag.StringVar(&config.GlobalNetworkContainer, "global-network-container", "172.18.0.0/16", "Subnets will be allocated from this container when --subnet is not specified during network creation")
 	flag.UintVar(&config.GlobalPrefixLength, "global-prefix-length", 24, "The default CIDR prefix length when allocating a global subnet.")

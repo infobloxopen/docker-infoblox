@@ -59,8 +59,6 @@ func getDockerID() (dockerID string, err error) {
 			return
 		}
 		dockerID = apiInfo.ID
-
-		return
 	}
 
 	return
@@ -154,8 +152,7 @@ func main() {
 		config.WapiPassword,
 		config.SslVerify,
 		config.HttpRequestTimeout,
-		config.HttpPoolConnections,
-		config.HttpPoolMaxSize)
+		config.HttpPoolConnections)
 
 	if err != nil {
 		log.Fatal(err)
@@ -165,7 +162,7 @@ func main() {
 	if len(dockerID) > 0 {
 		log.Printf("Docker id is '%s'\n", dockerID)
 	}
-	objMgr := ibclient.NewObjectManager(conn, dockerID)
+	objMgr := ibclient.NewObjectManager(conn, "Docker", dockerID)
 
 	ipamDrv := NewInfobloxDriver(objMgr, config.GlobalNetview, config.GlobalNetworkContainer, config.GlobalPrefixLength,
 		config.LocalNetview, config.LocalNetworkContainer, config.LocalPrefixLength)
@@ -195,7 +192,7 @@ func main() {
 		if c, ok := handlers[url]; ok {
 
 			//var req interface{}
-			var req interface{} = nil
+			var req interface{}
 			if c.t != nil {
 				req = reflect.New(c.t).Interface()
 				if err := json.NewDecoder(r.Body).Decode(req); err != nil {
