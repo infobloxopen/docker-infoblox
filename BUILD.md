@@ -12,30 +12,26 @@ The driver primarily depends on libnetwork and the infoblox-go-client . They can
 following commands:
 
 ```
-go get github.com/docker/libnetwork  # libnetwork library
-go get github.com/docker/engine-api  # used to obtain docker engine id
+go get github.com/docker/libnetwork  # libnetwork library (This also pulls down docker engine)
+go get github.com/docker/engine-api  # engine-api library (NOTE: run "make deps" to get dependencies)
 go get github.com/infobloxopen/infoblox-go-client  # Infoblox client
 ```
-This would install "libnetwork" as well as its dependencies.
-
-"engine-api" is used by the infoblox-ipam driver to obtain the docker 
+```engine-api``` is used by the infoblox-ipam driver to obtain the docker
 engine id, which is used to populate the "Tenant ID" EA.
 
-"infoblox-go-client" is used by the ipam-driver to interact
+```infoblox-go-client``` is used by the ipam-driver to interact
 with Infoblox.
 
-By default, the "master" branch of "libnetwork" and "docker" will be used. To build a
-release version, the corresponding branches need to be checked out:
+By default, the ```master``` branch of ```libnetwork``` and ```docker``` will be used. To build
+with release versions, the corresponding release tags need to be checked out. Minimum requirement
+for the ipam-driver is:
 
 ```
-libnetwork  release-0.5
-docker      release/v1.9
+libnetwork  0.5
+Docker      1.9.0
 ```
-or
-```
-libnetwork  release/v0.6
-docker      release/v1.10
-```
+It has also been tested using master. For libnetwork release information, refer to:
+https://github.com/docker/libnetwork/wiki
 
 Obviously, the driver need to be rebuilt after a different version of the above
 is checked out.
@@ -43,7 +39,7 @@ is checked out.
 Build Executable
 ----------------
 A Makefile is provided for automate the build process. To build the ipam-driver, just type
-```make``` in the "docker-infoblox" source directory. This creates an executable called "ipam-driver".
+```make``` in the ```docker-infoblox``` source directory. This creates an executable called ```ipam-driver```.
 
 Build Container Image
 ---------------------
