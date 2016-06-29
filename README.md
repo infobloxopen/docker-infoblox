@@ -19,7 +19,7 @@ Refer to CONFIG.md on how to configure vNIOS.
 
 Build
 -----
-(refer to BUILD.md)
+For dependencies and build instructions, refer to ```BUILD.md```.
 
 Installation
 ------------
@@ -76,7 +76,7 @@ For convenience, a script called "run.sh" is provided which can be edited to spe
 
 Run Container
 ------------
-Alternatively, the driver can also be run as a docker container.
+The best way to experiment with the driver is to run it as a container.
 
 A pre-built docker image can be pulled from Docker Hub using the following command:
 ```

@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	apitypes "github.com/docker/engine-api/types"
+	client "github.com/docker/engine-api/client"
 	ipamsapi "github.com/docker/libnetwork/ipams/remote/api"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
-	"io/ioutil"
+	ctx "golang.org/x/net/context"
 	"log"
 	"net"
 	"net/http"
@@ -21,45 +21,17 @@ func dockerApiConnector(proto, addr string) (conn net.Conn, err error) {
 func getDockerID() (dockerID string, err error) {
 	dockerID = ""
 	err = nil
-
-	tr := &http.Transport{
-		Dial: dockerApiConnector,
-	}
-	client := &http.Client{Transport: tr}
-
-	var req *http.Request
-	req, err = http.NewRequest("GET", "http://fakehost/info", nil)
+	context := ctx.Background()
+	cli, err := client.NewEnvClient()
 	if err != nil {
-		log.Printf("Cannot create HTTP request: '%s'\n", err)
 		return
 	}
 
-	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		log.Printf("Bad response querying for docker ID: '%s'\n", err)
-		return
-	}
+	inf, err := cli.Info(context)
 	if err != nil {
-		log.Printf("Error querying for docker ID: '%s'\n", err)
 		return
-	} else {
-		defer resp.Body.Close()
-		var contents []byte
-		contents, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Printf("Http Reponse ioutil.ReadAll() Error: '%s'", err)
-			return
-		}
-
-		apiInfo := new(apitypes.Info)
-		err = json.Unmarshal(contents, &apiInfo)
-
-		if err != nil {
-			log.Printf("Error unmarshaling docker ID\n: '%s'", apiInfo.ID)
-			return
-		}
-		dockerID = apiInfo.ID
 	}
+	dockerID = inf.ID
 
 	return
 }
@@ -158,7 +130,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	dockerID, _ := getDockerID()
+	dockerID, err := getDockerID()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	if len(dockerID) > 0 {
 		log.Printf("Docker id is '%s'\n", dockerID)
 	}
