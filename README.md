@@ -110,8 +110,21 @@ can override this using the --ipam-opt option. For example:
 sudo docker network create --ipam-driver=infoblox --ipam-opt="prefix-length=24" priv-net-2
 ```
 
-After which, Docker containers can be started attaching to the "priv-net" network created above. For example,
-the following command run the "ubuntu" image:
+Additionally, if you are deploying containers in a cluster, you can specify "network-name" using the --ipam-opt option.
+This will be used as an identifier so that docker networks created on different docker hosts can share the same IP address
+space. For example:
+
+```
+sudo docker network create --ipam-driver=infoblox --ipam-opt="network-name=blue" blue-net
+```
+This will allocate a network, say, 192.168.10.0/24, from the default address pool. Additionally, the network will be
+tagged in Infoblox with the network name "blue". Should the same command be issued on a different host, the driver will
+look for a network on Infoblox tagged with the same name, "blue", and will share the same network, 192.168.10.0/24, instead
+of allocating a new one.
+
+
+After the network is created, Docker containers can be started attaching to the "priv-net" network created above.
+For example, the following command run the "ubuntu" image:
 
 ```
 sudo docker run -i -t --net=priv-net --name=ubuntu1 ubuntu
