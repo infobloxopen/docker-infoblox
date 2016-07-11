@@ -15,6 +15,7 @@ LOCAL_VIEW="default"
 LOCAL_CONTAINER="192.168.0.0/16"
 LOCAL_PREFIX=24
 
-
+DOCKER_API_VERSION="1.22"
+export DOCKER_API_VERSION
 
 ./ipam-driver --grid-host=${GRID_HOST} --wapi-port=${WAPI_PORT} --wapi-username=${WAPI_USERNAME} --wapi-password=${WAPI_PASSWORD} --wapi-version=${WAPI_VERSION} --ssl-verify=${SSL_VERIFY} --global-view=${GLOBAL_VIEW} --global-network-container=${GLOBAL_CONTAINER} --global-prefix-length=${GLOBAL_PREFIX} --local-view=${LOCAL_VIEW} --local-network-container=${LOCAL_CONTAINER} --local-prefix-length=${LOCAL_PREFIX} --plugin-dir=${PLUGIN_DIR} --driver-name=${DRIVER_NAME}

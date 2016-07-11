@@ -27,8 +27,8 @@ with release versions, the corresponding release tags need to be checked out. Mi
 for the ipam-driver is:
 
 ```
-libnetwork  0.5
-Docker      1.9.0
+libnetwork  0.6
+Docker      1.10.0
 ```
 It has also been tested using master. For libnetwork release information, refer to:
 https://github.com/docker/libnetwork/wiki

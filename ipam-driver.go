@@ -22,6 +22,14 @@ func getDockerID() (dockerID string, err error) {
 	dockerID = ""
 	err = nil
 	context := ctx.Background()
+
+	// Default to Docker API Version corresponding to Docker v1.10
+	if os.Getenv("DOCKER_API_VERSION") == "" {
+		if err = os.Setenv("DOCKER_API_VERSION", "1.22"); err != nil {
+			log.Panicf("Cannot set default Docker API Version: '%s'", err)
+			os.Exit(1)
+		}
+	}
 	cli, err := client.NewEnvClient()
 	if err != nil {
 		return
