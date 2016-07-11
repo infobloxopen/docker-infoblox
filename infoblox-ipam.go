@@ -103,10 +103,32 @@ func (ibDrv *InfobloxDriver) ReleaseAddress(r interface{}) (map[string]interface
 	return map[string]interface{}{}, nil
 }
 
-func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string) (*ibclient.Network, error) {
+func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string, networkName string) (*ibclient.Network, error) {
 	network, err := ibDrv.objMgr.GetNetwork(netview, pool, nil)
+	if err != nil {
+		return nil, err
+	}
+	if network != nil {
+		if n, ok := network.Ea["Network Name"]; !ok || n != networkName {
+			log.Printf("requestSpecificNetwork: network is already used '%s'", *network)
+			return nil, nil
+		}
+	} else {
+		networkByName, err := ibDrv.objMgr.GetNetwork(netview, "", ibclient.EA{"Network Name": networkName})
+		if err != nil {
+			return nil, err
+		}
+		if networkByName != nil {
+			if networkByName.Cidr != pool {
+				log.Printf("requestSpecificNetwork: network name has different Cidr '%s'", networkByName.Cidr)
+				return nil, nil
+			}
+		}
+	}
+
 	if network == nil {
-		network, err = ibDrv.objMgr.CreateNetwork(netview, pool, "")
+		network, err = ibDrv.objMgr.CreateNetwork(netview, pool, networkName)
+		log.Printf("requestSpecificNetwork: CreateNetwork returns '%s', err='%s'", *network, err)
 	}
 
 	return network, err
@@ -137,7 +159,7 @@ func resetContainers(addrSpace *InfobloxAddressSpace) {
 	}
 }
 
-func (ibDrv *InfobloxDriver) allocateNetworkHelper(addrSpace *InfobloxAddressSpace, prefixLen uint) (network *ibclient.Network, err error) {
+func (ibDrv *InfobloxDriver) allocateNetworkHelper(addrSpace *InfobloxAddressSpace, prefixLen uint, networkName string) (network *ibclient.Network, err error) {
 	if prefixLen == 0 {
 		prefixLen = addrSpace.PrefixLength
 	}
@@ -151,7 +173,7 @@ func (ibDrv *InfobloxDriver) allocateNetworkHelper(addrSpace *InfobloxAddressSpa
 				return nil, err
 			}
 		}
-		network, err = ibDrv.objMgr.AllocateNetwork(addrSpace.NetviewName, container.NetworkContainer, prefixLen, "")
+		network, err = ibDrv.objMgr.AllocateNetwork(addrSpace.NetviewName, container.NetworkContainer, prefixLen, networkName)
 		if network != nil {
 			break
 		}
@@ -162,13 +184,13 @@ func (ibDrv *InfobloxDriver) allocateNetworkHelper(addrSpace *InfobloxAddressSpa
 	return network, nil
 }
 
-func (ibDrv *InfobloxDriver) allocateNetwork(netview string, prefixLen uint) (network *ibclient.Network, err error) {
+func (ibDrv *InfobloxDriver) allocateNetwork(netview string, prefixLen uint, networkName string) (network *ibclient.Network, err error) {
 	addrSpace := ibDrv.addressSpaceByView[netview]
 
-	network, err = ibDrv.allocateNetworkHelper(addrSpace, prefixLen)
+	network, err = ibDrv.allocateNetworkHelper(addrSpace, prefixLen, networkName)
 	if network == nil {
 		resetContainers(addrSpace)
-		network, err = ibDrv.allocateNetworkHelper(addrSpace, prefixLen)
+		network, err = ibDrv.allocateNetworkHelper(addrSpace, prefixLen, networkName)
 	}
 
 	if network == nil {
@@ -184,29 +206,59 @@ func (ibDrv *InfobloxDriver) RequestPool(r interface{}) (res map[string]interfac
 	netviewName := ibclient.BuildNetworkViewFromRef(v.AddressSpace).Name
 
 	var network *ibclient.Network
+	var networkName string
+
+	if opt, ok := v.Options["network-name"]; ok {
+		networkName = opt
+	}
+
 	if len(v.Pool) > 0 {
-		network, err = ibDrv.requestSpecificNetwork(netviewName, v.Pool)
+		network, err = ibDrv.requestSpecificNetwork(netviewName, v.Pool, networkName)
 	} else {
 		var prefixLen uint
-		if opt, ok := v.Options["prefix-length"]; ok {
-			if v, err := strconv.ParseUint(opt, 10, 8); err == nil {
-				prefixLen = uint(v)
+		var networkByName *ibclient.Network
+		if networkName != "" {
+			networkByName, err = ibDrv.objMgr.GetNetwork(netviewName, "", ibclient.EA{"Network Name": networkName})
+			if err != nil {
+				return
 			}
 		}
-		network, err = ibDrv.allocateNetwork(netviewName, prefixLen)
+		if networkByName != nil {
+			log.Printf("RequestNetwork: GetNetwork by name returns '%s'", *networkByName)
+			network = networkByName
+		} else {
+			if opt, ok := v.Options["prefix-length"]; ok {
+				if v, err := strconv.ParseUint(opt, 10, 8); err == nil {
+					prefixLen = uint(v)
+				}
+			}
+			network, err = ibDrv.allocateNetwork(netviewName, prefixLen, networkName)
+		}
 	}
 
 	if network != nil {
 		res = map[string]interface{}{"PoolID": network.Ref, "Pool": network.Cidr}
 	}
-	return res, err
+	return
 }
 
 func (ibDrv *InfobloxDriver) ReleasePool(r interface{}) (map[string]interface{}, error) {
 	v := r.(*ipamsapi.ReleasePoolRequest)
 
 	if len(v.PoolID) > 0 {
-		ref, _ := ibDrv.objMgr.DeleteLocalNetwork(v.PoolID, ibDrv.addressSpaceByScope[LOCAL].NetviewName)
+		networkFromRef := ibclient.BuildNetworkFromRef(v.PoolID)
+		network, err := ibDrv.objMgr.GetNetwork(networkFromRef.NetviewName, networkFromRef.Cidr, nil)
+		if err != nil {
+			return map[string]interface{}{}, err
+		}
+
+		// if network has a valid looking "Network Name" EA, assume that
+		// it is shared with others - hence not deleted.
+		if n, ok := network.Ea["Network Name"]; ok && n != "" {
+			return map[string]interface{}{}, nil
+		}
+
+		ref, _ := ibDrv.objMgr.DeleteNetwork(v.PoolID, networkFromRef.NetviewName)
 		if len(ref) > 0 {
 			log.Printf("Network %s deleted from Infoblox\n", v.PoolID)
 		}
