@@ -71,6 +71,14 @@ For example,
 ```
 The command need to be executed with root permission.
 
+By default, ipam-driver uses Docker API Version 1.22 to access Docker Remote API.
+The default can be overridden using the DOCKER_API_VERSION environment variable prior to running the driver. For example,
+
+```
+DOCKER_API_VERSION=1.23
+export DOCKER_API_VERSION
+```
+
 For convenience, a script called "run.sh" is provided which can be edited to specify the desired options.
 
 
@@ -85,7 +93,7 @@ docker pull infoblox/ipam-driver
 
 After successfully pulling the image, you use the ```docker run``` command to run the driver. For exampe:
 ```
-docker run -v /var/run:/var/run -v /run/docker:/run/docker infoblox/ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --local-view=local_view --local-network-container="192.168.0.0/20,192.169.0.0/22" --local-prefix-length=25 --global-view=global_view --global-network-container="172.18.0.0/16" --global-prefix-length=24
+docker run -e DOCKER_API_VERSION=1.22 -v /var/run:/var/run -v /run/docker:/run/docker infoblox/ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --local-view=local_view --local-network-container="192.168.0.0/20,192.169.0.0/22" --local-prefix-length=25 --global-view=global_view --global-network-container="172.18.0.0/16" --global-prefix-length=24
 ```
 
 Note that the -v options are necessary to provide the container access to the specified directories on the
