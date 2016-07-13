@@ -75,6 +75,9 @@ func (ibDrv *InfobloxDriver) RequestAddress(r interface{}) (map[string]interface
 		fixedAddr, _ = ibDrv.objMgr.GetFixedAddress(network.NetviewName, v.Address, "")
 
 		if fixedAddr != nil {
+			if fixedAddr.Mac == "" {
+				fixedAddr.Mac = ibclient.MACADDR_ZERO
+			}
 			if fixedAddr.Mac != macAddr {
 				log.Printf("Requested IP address '%s' is already used by a difference MAC address '%s' (%s)",
 					v.Address, fixedAddr.Mac, macAddr)
