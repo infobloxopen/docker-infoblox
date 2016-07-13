@@ -70,17 +70,12 @@ func (ibDrv *InfobloxDriver) RequestAddress(r interface{}) (map[string]interface
 		log.Printf("RequestAddressRequest contains empty MAC Address. '%s' will be used.\n", macAddr)
 	}
 
-	var fixedAddr *ibclient.FixedAddress
-	if v.Address != "" {
-		fixedAddr, _ = ibDrv.objMgr.GetFixedAddress(network.NetviewName, v.Address, "")
-
-		if fixedAddr != nil {
-			if fixedAddr.Mac == "" {
-				fixedAddr.Mac = ibclient.MACADDR_ZERO
-			}
-			if fixedAddr.Mac != macAddr {
-				log.Printf("Requested IP address '%s' is already used by a difference MAC address '%s' (%s)",
-					v.Address, fixedAddr.Mac, macAddr)
+	fixedAddr, _ := ibDrv.objMgr.GetFixedAddress(network.NetviewName, network.Cidr, "", macAddr)
+	if fixedAddr != nil {
+		if v.Address != "" {
+			if fixedAddr.IPAddress != v.Address {
+				log.Printf("Requested MAC address '%s' is already associated with a difference IP address '%s' (requested: '%s')",
+					macAddr, fixedAddr.IPAddress, v.Address)
 
 				return nil, nil
 			}
@@ -98,7 +93,7 @@ func (ibDrv *InfobloxDriver) ReleaseAddress(r interface{}) (map[string]interface
 	v := r.(*ipamsapi.ReleaseAddressRequest)
 	log.Printf("Releasing Address '%s' from Pool '%s'\n", v.Address, v.PoolID)
 	network := ibclient.BuildNetworkFromRef(v.PoolID)
-	ref, _ := ibDrv.objMgr.ReleaseIP(network.NetviewName, v.Address, "")
+	ref, _ := ibDrv.objMgr.ReleaseIP(network.NetviewName, network.Cidr, v.Address, "")
 	if ref == "" {
 		log.Printf("***** IP Cannot be deleted '%s'! *******\n", v.Address)
 	}
