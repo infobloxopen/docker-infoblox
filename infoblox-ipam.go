@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	ipamsapi "github.com/docker/libnetwork/ipams/remote/api"
-	netlabel "github.com/docker/libnetwork/netlabel"
+	"github.com/docker/libnetwork/netlabel"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	"log"
 	"strconv"

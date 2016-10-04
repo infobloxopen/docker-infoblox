@@ -8,15 +8,24 @@ import (
 func main() {
 	config := LoadConfig()
 
-	conn, err := ibclient.NewConnector(
-		config.GridHost,
-		config.WapiVer,
-		config.WapiPort,
-		config.WapiUsername,
-		config.WapiPassword,
+	hostConfig := ibclient.HostConfig{
+		Host:     config.GridHost,
+		Version:  config.WapiVer,
+		Port:     config.WapiPort,
+		Username: config.WapiUsername,
+		Password: config.WapiPassword,
+	}
+
+	transportConfig := ibclient.NewTransportConfig(
 		config.SslVerify,
 		config.HttpRequestTimeout,
-		config.HttpPoolConnections)
+		config.HttpPoolConnections,
+	)
+
+	requestBuilder := &ibclient.WapiRequestBuilder{}
+	requestor := &ibclient.WapiHttpRequestor{}
+
+	conn, err := ibclient.NewConnector(hostConfig, transportConfig, requestBuilder, requestor)
 
 	if err != nil {
 		log.Fatal(err)
