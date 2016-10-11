@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	client "github.com/docker/engine-api/client"
+	apiclient "github.com/docker/engine-api/client"
 	ipamsapi "github.com/docker/libnetwork/ipams/remote/api"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	ctx "golang.org/x/net/context"
@@ -13,10 +13,6 @@ import (
 	"os"
 	"reflect"
 )
-
-func dockerApiConnector(proto, addr string) (conn net.Conn, err error) {
-	return net.Dial("unix", "/var/run/docker.sock")
-}
 
 func getDockerID() (dockerID string, err error) {
 	dockerID = ""
@@ -30,7 +26,7 @@ func getDockerID() (dockerID string, err error) {
 			os.Exit(1)
 		}
 	}
-	cli, err := client.NewEnvClient()
+	cli, err := apiclient.NewEnvClient()
 	if err != nil {
 		return
 	}
@@ -124,15 +120,24 @@ func main() {
 	log.Printf("Driver Name: '%s'", config.DriverName)
 	log.Printf("Socket File: '%s'", socketFile)
 
-	conn, err := ibclient.NewConnector(
-		config.GridHost,
-		config.WapiVer,
-		config.WapiPort,
-		config.WapiUsername,
-		config.WapiPassword,
+	hostConfig := ibclient.HostConfig{
+		Host:     config.GridHost,
+		Version:  config.WapiVer,
+		Port:     config.WapiPort,
+		Username: config.WapiUsername,
+		Password: config.WapiPassword,
+	}
+
+	transportConfig := ibclient.NewTransportConfig(
 		config.SslVerify,
 		config.HttpRequestTimeout,
-		config.HttpPoolConnections)
+		config.HttpPoolConnections,
+	)
+
+	requestBuilder := &ibclient.WapiRequestBuilder{}
+	requestor := &ibclient.WapiHttpRequestor{}
+
+	conn, err := ibclient.NewConnector(hostConfig, transportConfig, requestBuilder, requestor)
 
 	if err != nil {
 		log.Fatal(err)
