@@ -8,6 +8,12 @@ ipam-driver is a Docker libnetwork driver that interfaces with Infoblox to provi
 services. libnetwork is the library provided by Docker that allows third-party drivers for container
 networking.
 
+```
+NOTE: There is a limitation in Swarm Mode introduced in Docker 1.12 where IPAM plugins are not supported.
+As a result, the ipam-driver cannot be used in that configuration, althought the driver still works in
+a traditional Docker Swarm. It is expected that this limitation will be fixed in an upcoming Docker
+release, and would therefore enable the ipam-driver to work in Swarm Mode.
+```
 
 Prerequisite
 ------------
