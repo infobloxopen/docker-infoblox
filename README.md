@@ -40,8 +40,10 @@ ipam-driver accepts a number of arguments which can be listed by specifying -h:
 ```
 ubuntu$ ./ipam-driver --help
 Usage of ./ipam-driver:
+  -conf-file
+        File path of configuration file (see below)
   -driver-name string
-        Name of Infoblox IPAM driver (default "mddi")
+        Name of Infoblox IPAM driver (default "infoblox")
   -global-network-container string
         Subnets will be allocated from this container when --subnet is not specified during network creation (default "172.18.0.0/16")
   -global-prefix-length uint
@@ -68,6 +70,10 @@ Usage of ./ipam-driver:
         Infoblox WAPI Username
   -wapi-version string
         Infoblox WAPI Version. (default "2.0")
+  -http-request_timeout
+        Infoblox WAPI request timeout in seconds. (default 60)
+  -http-pool-connections
+        Infoblox WAPI request connection pool size. (default 10)
 ```
 
 For example,
@@ -75,7 +81,38 @@ For example,
 ```
 ./ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --local-view=local_view --local-network-container="192.168.0.0/20,192.169.0.0/22" --local-prefix-length=25 --global-view=global_view --global-network-container="172.18.0.0/16" --global-prefix-length=24
 ```
+
 The command need to be executed with root permission.
+
+If the ```conf-file``` option is specified in the command line argument, it specifies a configuration
+file that accept the same set of parameters (except ```conf_file```) in the following format:
+
+```
+[plugin_config]
+driver_name="infoblox"
+plugin_dir="/run/docker/plugins"
+
+[grid_config]
+grid_host="192.168.124.200"
+wapi_port="443"
+wapi_username="admin"
+wapi_password="infoblox"
+wapi_version="2.0"
+ssl_verify="false"
+http_request_timeout=60
+http_pool_connections=10
+
+[ipam_config]
+global_view="default"
+global_container="172.18.0.0/16"
+global_prefix=16
+local_view="default"
+local_container="192.168.0.0/16"
+local_prefix=24
+```
+
+If the same parameter is specified in both the configuration file and command line argument, the
+value specified in the command line argument takes precedence.
 
 By default, ipam-driver uses Docker API Version 1.22 to access Docker Remote API.
 The default can be overridden using the DOCKER_API_VERSION environment variable prior to running the driver. For example,
