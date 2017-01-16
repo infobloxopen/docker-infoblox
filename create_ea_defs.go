@@ -6,7 +6,10 @@ import (
 )
 
 func main() {
-	config := LoadConfig()
+	config, err := LoadConfig()
+	if config == nil || err != nil {
+		log.Fatal(err)
+	}
 
 	hostConfig := ibclient.HostConfig{
 		Host:     config.GridHost,
@@ -18,8 +21,8 @@ func main() {
 
 	transportConfig := ibclient.NewTransportConfig(
 		config.SslVerify,
-		config.HttpRequestTimeout,
-		config.HttpPoolConnections,
+		int(config.HttpRequestTimeout),
+		int(config.HttpPoolConnections),
 	)
 
 	requestBuilder := &ibclient.WapiRequestBuilder{}
