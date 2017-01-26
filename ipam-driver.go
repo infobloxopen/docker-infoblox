@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strings"
 )
 
 func getDockerID() (dockerID string, err error) {
@@ -107,6 +108,16 @@ func setupSocket(pluginDir string, driverName string) string {
 	return socketFile
 }
 
+func urlToRequestType(url string) string {
+	parts := strings.Split(url, ".")
+	n := len(parts)
+	if n > 0 {
+		n = n - 1
+	}
+
+	return parts[n]
+}
+
 type ipamCall struct {
 	url string
 	f   func(r interface{}) (map[string]interface{}, error)
@@ -180,7 +191,8 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL.String()
-		log.Printf("Plugin: %s\n", url)
+		requestType := urlToRequestType(url)
+
 		if c, ok := handlers[url]; ok {
 
 			//var req interface{}
@@ -194,18 +206,22 @@ func main() {
 				}
 			}
 
+			log.Printf("'%s' request: '%s'\n", requestType, req)
 			res, err := c.f(req)
 			if err != nil || res == nil {
+				if res == nil {
+					log.Printf("IPAM Driver returned nil result")
+					res = make(map[string]interface{})
+				}
 				if err != nil {
 					log.Printf("IPAM Driver error '%s'", err)
-				} else if res == nil {
-					log.Printf("IPAM Driver returned nil result")
+					res["Error"] = err.Error()
 				}
-				http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
-			} else {
-				if err := json.NewEncoder(w).Encode(res); err != nil {
-					log.Printf("%s: Bad Response Error: %s\n", url, err)
-				}
+			}
+			log.Printf("'%s' result: '%s'\n", requestType, res)
+
+			if err := json.NewEncoder(w).Encode(res); err != nil {
+				log.Printf("%s: Bad Response Error: %s\n", url, err)
 			}
 		}
 		fmt.Fprintf(w, "{ \"Error\": \"%s\"}", url)
