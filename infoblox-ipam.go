@@ -74,19 +74,27 @@ func (ibDrv *InfobloxDriver) RequestAddress(r interface{}) (map[string]interface
 	if fixedAddr != nil {
 		if v.Address != "" {
 			if fixedAddr.IPAddress != v.Address {
-				log.Printf("Requested MAC address '%s' is already associated with a difference IP address '%s' (requested: '%s')",
+				msg := fmt.Sprintf("Requested MAC '%s' is already associated with a difference IP '%s' (requested: '%s')",
 					macAddr, fixedAddr.IPAddress, v.Address)
-
-				return nil, nil
+				log.Printf("RequestAddress: %s", msg)
+				return nil, errors.New(msg)
 			}
 		}
 	}
 
+	var err error
 	if fixedAddr == nil {
-		fixedAddr, _ = ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, v.Address, macAddr, "")
+		fixedAddr, err = ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, v.Address, macAddr, "")
 	}
 
-	return map[string]interface{}{"Address": fmt.Sprintf("%s/%s", fixedAddr.IPAddress, getPrefixLength(network.Cidr))}, nil
+	var res map[string]interface{}
+	if fixedAddr == nil || err != nil {
+		res = map[string]interface{}{}
+	} else {
+		res = map[string]interface{}{"Address": fmt.Sprintf("%s/%s", fixedAddr.IPAddress, getPrefixLength(network.Cidr))}
+	}
+
+	return res, err
 }
 
 func (ibDrv *InfobloxDriver) ReleaseAddress(r interface{}) (map[string]interface{}, error) {
@@ -108,8 +116,9 @@ func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string,
 	}
 	if network != nil {
 		if n, ok := network.Ea["Network Name"]; !ok || n != networkName {
-			log.Printf("requestSpecificNetwork: network is already used '%s'", *network)
-			return nil, nil
+			msg := fmt.Sprintf("Network (%s) already in use", network.Cidr)
+			log.Printf("requestSpecificNetwork: %s", msg)
+			return nil, errors.New(msg)
 		}
 	} else {
 		networkByName, err := ibDrv.objMgr.GetNetwork(netview, "", ibclient.EA{"Network Name": networkName})
@@ -118,8 +127,9 @@ func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string,
 		}
 		if networkByName != nil {
 			if networkByName.Cidr != pool {
-				log.Printf("requestSpecificNetwork: network name has different Cidr '%s'", networkByName.Cidr)
-				return nil, nil
+				msg := fmt.Sprintf("Network name (%s) has different CIDR (%s)", networkName, networkByName.Cidr)
+				log.Printf("requestSpecificNetwork: %s", msg)
+				return nil, errors.New(msg)
 			}
 		}
 	}
@@ -258,7 +268,7 @@ func (ibDrv *InfobloxDriver) ReleasePool(r interface{}) (map[string]interface{},
 
 		ref, _ := ibDrv.objMgr.DeleteNetwork(v.PoolID, networkFromRef.NetviewName)
 		if len(ref) > 0 {
-			log.Printf("Network %s deleted from Infoblox\n", v.PoolID)
+			log.Printf("Network %s successfully deleted from Infoblox\n", v.PoolID)
 		}
 	}
 
