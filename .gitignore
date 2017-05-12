@@ -22,3 +22,8 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# Ignore the binaries
+ipam-driver
+create_ea_defs
+bin/
