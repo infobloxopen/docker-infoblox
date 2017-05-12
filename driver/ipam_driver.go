@@ -13,6 +13,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+    "github.com/infobloxopen/docker-infoblox/common"
 )
 
 func getDockerID() (dockerID string, err error) {
@@ -125,7 +126,7 @@ type ipamCall struct {
 }
 
 func main() {
-	config, err := LoadConfig()
+	config, err := common.LoadConfig()
 	if config == nil || err != nil {
 		log.Fatal(err)
 	}

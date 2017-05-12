@@ -1,6 +1,6 @@
 FROM ubuntu
 
-ADD ipam-driver /
+ADD bin/ipam-driver /
 
 
 ENTRYPOINT ["/ipam-driver"]

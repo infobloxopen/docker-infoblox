@@ -1,4 +1,3 @@
-SOURCES=ipam-driver.go infoblox-ipam.go config.go
 BINARY_NAME=ipam-driver
 IMAGE_NAME=ipam-driver
 LOCAL_IMAGE=$(IMAGE_NAME)
@@ -6,15 +5,16 @@ DEV_IMAGE=$(DOCKERHUB_ID)/$(IMAGE_NAME)  # Requires DOCKERHUB_ID environment var
 RELEASE_IMAGE=infoblox/$(IMAGE_NAME)
 
 CREATE_EA_DEFS=create_ea_defs
-CREATE_EA_DEFS_SOURCES=create_ea_defs.go config.go constants.go
 
 
 # Build binary - this is the default target
 build: $(BINARY_NAME) $(CREATE_EA_DEFS)
 
-
 # Build binary and docker image
 all: build image
+
+
+
 
 
 # Build local docker image
@@ -31,11 +31,13 @@ push-release: image
 	docker tag $(LOCAL_IMAGE) $(RELEASE_IMAGE)
 	docker push $(RELEASE_IMAGE)
 
-$(BINARY_NAME): $(SOURCES)
-	go build -o $(BINARY_NAME) ${SOURCES}
+$(BINARY_NAME):
+	mkdir -p bin
+	go build -o bin/$(BINARY_NAME) ./driver/
 
-$(CREATE_EA_DEFS): $(CREATE_EA_DEFS_SOURCES)
-	go build -o $(CREATE_EA_DEFS) ${CREATE_EA_DEFS_SOURCES}
+$(CREATE_EA_DEFS):
+	mkdir -p bin
+	go build -o bin/$(CREATE_EA_DEFS) ./ea-defs/
 
 # Delete binary for clean build
 clean:

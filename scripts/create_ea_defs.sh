@@ -11,4 +11,4 @@ SSL_VERIFY="false"
 
 
 
-./create_ea_defs --grid-host=${GRID_HOST} --wapi-port=${WAPI_PORT} --wapi-username=${WAPI_USERNAME} --wapi-password=${WAPI_PASSWORD} --wapi-version=${WAPI_VERSION} --ssl-verify=${SSL_VERIFY}
+bin/create_ea_defs --grid-host=${GRID_HOST} --wapi-port=${WAPI_PORT} --wapi-username=${WAPI_USERNAME} --wapi-password=${WAPI_PASSWORD} --wapi-version=${WAPI_VERSION} --ssl-verify=${SSL_VERIFY}
