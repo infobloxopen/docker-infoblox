@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	apiclient "github.com/moby/moby/client"
+	apiclient "github.com/docker/engine-api/client"
 	ipamsapi "github.com/docker/libnetwork/ipams/remote/api"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	ctx "golang.org/x/net/context"
