@@ -13,10 +13,10 @@ following commands:
 
 ```
 go get github.com/docker/libnetwork  # libnetwork library (This also pulls down docker engine)
-go get github.com/moby/moby/client  # moby client library (NOTE: run "make deps" to get dependencies)
+go get github.com/docker/engine-api  # engine-api library (NOTE: run "make deps" to get dependencies)
 go get github.com/infobloxopen/infoblox-go-client  # Infoblox client
 ```
-```moby client``` is used by the infoblox-ipam driver to obtain the docker
+```engine-api``` is used by the infoblox-ipam driver to obtain the docker
 engine id, which is used to populate the "Tenant ID" EA.
 
 ```infoblox-go-client``` is used by the ipam-driver to interact
