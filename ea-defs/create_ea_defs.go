@@ -1,8 +1,8 @@
 package main
 
 import (
-    ibclient "github.com/infobloxopen/infoblox-go-client"
-    "log"
+	ibclient "github.com/infobloxopen/infoblox-go-client"
+	"log"
     "github.com/infobloxopen/docker-infoblox/common"
 )
 
