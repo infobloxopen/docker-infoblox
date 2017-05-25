@@ -1,9 +1,5 @@
-[plugin_config]
-driver_name="infoblox"
-plugin_dir="/run/docker/plugins"
-
 [grid_config]
-grid_host="192.168.124.200"
+grid_host="10.120.21.150"
 wapi_port="443"
 wapi_username="admin"
 wapi_password="infoblox"

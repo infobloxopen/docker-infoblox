@@ -27,3 +27,4 @@ _testmain.go
 ipam-driver
 create_ea_defs
 bin/
+plugin/

@@ -8,15 +8,21 @@ import (
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	ctx "golang.org/x/net/context"
 	"log"
-	"net"
-	"net/http"
 	"os"
 	"reflect"
 	"strings"
-    "github.com/infobloxopen/docker-infoblox/common"
+
+	"github.com/infobloxopen/docker-infoblox/common"
+	ibclient "github.com/infobloxopen/infoblox-go-client"
+	//apiclient "github.com/moby/moby/client"
+	//ctx "golang.org/x/net/context"
+	ipamPluginSdk "github.com/docker/go-plugins-helpers/ipam"
 )
 
+const socketAddress = "/run/docker/plugins/infoblox.sock"
+
 func getDockerID() (dockerID string, err error) {
+	/**
 	dockerID = ""
 	err = nil
 	context := ctx.Background()
@@ -38,8 +44,8 @@ func getDockerID() (dockerID string, err error) {
 		return
 	}
 	dockerID = inf.ID
-
-	return
+  **/
+	return "ThisIsFakeDockerID", nil
 }
 
 func dirExists(dirname string) (bool, error) {
@@ -76,6 +82,7 @@ func deleteFile(filePath string) error {
 	return os.Remove(filePath)
 }
 
+/**
 func setupSocket(pluginDir string, driverName string) string {
 	exists, err := dirExists(pluginDir)
 	if err != nil {
@@ -108,6 +115,7 @@ func setupSocket(pluginDir string, driverName string) string {
 
 	return socketFile
 }
+**/
 
 func urlToRequestType(url string) string {
 	parts := strings.Split(url, ".")
@@ -131,9 +139,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	socketFile := setupSocket(config.PluginDir, config.DriverName)
+	//socketFile := setupSocket(config.PluginDir, config.DriverName)
 	log.Printf("Driver Name: '%s'", config.DriverName)
-	log.Printf("Socket File: '%s'", socketFile)
+	log.Printf("Socket File: '%s'", socketAddress)
 
 	hostConfig := ibclient.HostConfig{
 		Host:     config.GridHost,
@@ -170,71 +178,8 @@ func main() {
 
 	ipamDrv := NewInfobloxDriver(objMgr, config.GlobalNetview, config.GlobalNetworkContainer, config.GlobalPrefixLength,
 		config.LocalNetview, config.LocalNetworkContainer, config.LocalPrefixLength)
-	ipamCalls := []ipamCall{
-		{"/Plugin.Activate", ipamDrv.PluginActivate, nil},
-		{"/IpamDriver.GetCapabilities", ipamDrv.GetCapabilities, nil},
-		{"/IpamDriver.GetDefaultAddressSpaces", ipamDrv.GetDefaultAddressSpaces, nil},
-		{"/IpamDriver.RequestPool", ipamDrv.RequestPool,
-			reflect.TypeOf(ipamsapi.RequestPoolRequest{})},
-		{"/IpamDriver.ReleasePool", ipamDrv.ReleasePool,
-			reflect.TypeOf(ipamsapi.ReleasePoolRequest{})},
-		{"/IpamDriver.RequestAddress", ipamDrv.RequestAddress,
-			reflect.TypeOf(ipamsapi.RequestAddressRequest{})},
-		{"/IpamDriver.ReleaseAddress", ipamDrv.ReleaseAddress,
-			reflect.TypeOf(ipamsapi.ReleaseAddressRequest{})},
-	}
 
-	handlers := make(map[string]ipamCall)
-
-	for _, v := range ipamCalls {
-		handlers[v.url] = v
-	}
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		url := r.URL.String()
-		requestType := urlToRequestType(url)
-
-		if c, ok := handlers[url]; ok {
-
-			//var req interface{}
-			var req interface{}
-			if c.t != nil {
-				req = reflect.New(c.t).Interface()
-				if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-					log.Printf("%s: Bad Request Error: %s\n", url, err)
-					http.Error(w, err.Error(), http.StatusBadRequest)
-					return
-				}
-			}
-
-			log.Printf("'%s' request: '%s'\n", requestType, req)
-			res, err := c.f(req)
-			if err != nil || res == nil {
-				if res == nil {
-					log.Printf("IPAM Driver returned nil result")
-					res = make(map[string]interface{})
-				}
-				if err != nil {
-					log.Printf("IPAM Driver error '%s'", err)
-					res["Error"] = err.Error()
-				}
-			}
-			log.Printf("'%s' result: '%s'\n", requestType, res)
-
-			if err := json.NewEncoder(w).Encode(res); err != nil {
-				log.Printf("%s: Bad Response Error: %s\n", url, err)
-			}
-		}
-		fmt.Fprintf(w, "{ \"Error\": \"%s\"}", url)
-	})
-
-	l, err := net.Listen("unix", socketFile)
-	if err != nil {
-		log.Panic(err)
-	}
-	if err := http.Serve(l, nil); err != nil {
-		log.Panic(err)
-	}
-
-	os.Exit(0)
+	h := ipamPluginSdk.NewHandler(ipamDrv)
+	h.ServeUnix(socketAddress, 0)
+	//os.Exit(0)
 }

@@ -1,6 +1,9 @@
-FROM ubuntu
+FROM alpine
 
-ADD bin/ipam-driver /
+RUN apk update
 
+RUN mkdir -p /run/docker/plugins
 
-ENTRYPOINT ["/ipam-driver"]
+COPY bin/ipam-driver ipam-driver
+
+ENTRYPOINT ["/ipam-driver", "--conf-file", "/etc/infoblox/docker-infoblox.conf"]
