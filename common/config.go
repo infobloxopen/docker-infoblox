@@ -6,11 +6,6 @@ import (
 	"os"
 )
 
-type PluginConfig struct {
-	PluginDir  string `toml:"plugin_dir"`
-	DriverName string `toml:"driver_name"`
-}
-
 type GridConfig struct {
 	GridHost            string `toml:"grid_host"`
 	WapiVer             string `toml:"wapi_version"`
@@ -32,20 +27,14 @@ type IpamConfig struct {
 }
 
 type Config struct {
-	ConfigFile   string `toml:`
-	PluginConfig `toml:"plugin_config"`
-	GridConfig   `toml:"grid_config"`
-	IpamConfig   `toml:"ipam_config"`
+	ConfigFile string `toml:`
+	GridConfig `toml:"grid_config"`
+	IpamConfig `toml:"ipam_config"`
 }
 
 func NewConfig() *Config {
 	return &Config{
 		ConfigFile: "",
-
-		PluginConfig: PluginConfig{
-			PluginDir:  "/run/docker/plugins",
-			DriverName: "infoblox",
-		},
 
 		GridConfig: GridConfig{
 			GridHost:            "192.168.124.200",
@@ -77,9 +66,6 @@ func LoadFromCommandLine(config *Config) (*Config, error) {
 	flagSet := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
 	flagSet.StringVar(&config.ConfigFile, "conf-file", "", "File path of configuration file")
-
-	flagSet.StringVar(&config.PluginDir, "plugin-dir", config.PluginDir, "Docker plugin directory where driver socket is created")
-	flagSet.StringVar(&config.DriverName, "driver-name", config.DriverName, "Name of Infoblox IPAM driver")
 
 	flagSet.StringVar(&config.GridHost, "grid-host", config.GridHost, "IP of Infoblox Grid Host")
 	flagSet.StringVar(&config.WapiVer, "wapi-version", config.WapiVer, "Infoblox WAPI Version.")

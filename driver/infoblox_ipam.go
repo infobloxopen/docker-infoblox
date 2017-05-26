@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"github.com/docker/libnetwork/netlabel"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
-	"log"
 	"strconv"
+	"log"
 	"strings"
-	ipamPluginSdk "github.com/docker/go-plugins-helpers/ipam"
+	"github.com/Sirupsen/logrus"
+	ipamApi "github.com/docker/go-plugins-helpers/ipam"
 )
 
 type Container struct {
@@ -36,16 +37,18 @@ type InfobloxDriver struct {
 	addressSpaceByView  map[string]*InfobloxAddressSpace
 }
 
-func (ibDrv *InfobloxDriver) GetCapabilities() (*ipamPluginSdk.CapabilitiesResponse, error) {
-	return &ipamPluginSdk.CapabilitiesResponse{RequiresMACAddress: true}, nil
+func (ibDrv *InfobloxDriver) GetCapabilities() (*ipamApi.CapabilitiesResponse, error) {
+	logrus.Infof("GetCapabilities called")
+	return &ipamApi.CapabilitiesResponse{RequiresMACAddress: true}, nil
 }
 
-func (ibDrv *InfobloxDriver) GetDefaultAddressSpaces() (*ipamPluginSdk.AddressSpacesResponse, error) {
+func (ibDrv *InfobloxDriver) GetDefaultAddressSpaces() (*ipamApi.AddressSpacesResponse, error) {
+	logrus.Infof("GetDefaultAddressSpaces called")
 	globalViewRef, localViewRef, err := ibDrv.objMgr.CreateDefaultNetviews(
 		ibDrv.addressSpaceByScope[GLOBAL].NetviewName,
 		ibDrv.addressSpaceByScope[LOCAL].NetviewName)
 
-	return &ipamPluginSdk.AddressSpacesResponse{LocalDefaultAddressSpace: localViewRef, GlobalDefaultAddressSpace: globalViewRef}, err
+	return &ipamApi.AddressSpacesResponse{LocalDefaultAddressSpace: localViewRef, GlobalDefaultAddressSpace: globalViewRef}, err
 }
 
 func getPrefixLength(cidr string) (prefixLength string) {
@@ -53,7 +56,7 @@ func getPrefixLength(cidr string) (prefixLength string) {
 	return parts[1]
 }
 
-func (ibDrv *InfobloxDriver) RequestAddress(r *ipamPluginSdk.RequestAddressRequest) (*ipamPluginSdk.RequestAddressResponse, error) {
+func (ibDrv *InfobloxDriver) RequestAddress(r *ipamApi.RequestAddressRequest) (*ipamApi.RequestAddressResponse, error) {
 	network := ibclient.BuildNetworkFromRef(r.PoolID)
 
 	macAddr := r.Options[netlabel.MacAddress]
@@ -69,7 +72,7 @@ func (ibDrv *InfobloxDriver) RequestAddress(r *ipamPluginSdk.RequestAddressReque
 				msg := fmt.Sprintf("Requested MAC '%s' is already associated with a difference IP '%s' (requested: '%s')",
 					macAddr, fixedAddr.IPAddress, r.Address)
 				log.Printf("RequestAddress: %s", msg)
-				return &ipamPluginSdk.RequestAddressResponse{}, errors.New(msg)
+				return &ipamApi.RequestAddressResponse{}, errors.New(msg)
 			}
 		}
 	}
@@ -79,17 +82,17 @@ func (ibDrv *InfobloxDriver) RequestAddress(r *ipamPluginSdk.RequestAddressReque
 		fixedAddr, err = ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, r.Address, macAddr, "")
 	}
 
-	var res ipamPluginSdk.RequestAddressResponse
+	var res ipamApi.RequestAddressResponse
 	if fixedAddr == nil || err != nil {
-		res = ipamPluginSdk.RequestAddressResponse{}
+		res = ipamApi.RequestAddressResponse{}
 	} else {
-		res = ipamPluginSdk.RequestAddressResponse{Address: fmt.Sprintf("%s/%s", fixedAddr.IPAddress, getPrefixLength(network.Cidr))}
+		res = ipamApi.RequestAddressResponse{Address: fmt.Sprintf("%s/%s", fixedAddr.IPAddress, getPrefixLength(network.Cidr))}
 	}
 
 	return &res, err
 }
 
-func (ibDrv *InfobloxDriver) ReleaseAddress(r *ipamPluginSdk.ReleaseAddressRequest) error {
+func (ibDrv *InfobloxDriver) ReleaseAddress(r *ipamApi.ReleaseAddressRequest) error {
 	log.Printf("Releasing Address '%s' from Pool '%s'\n", r.Address, r.PoolID)
 	network := ibclient.BuildNetworkFromRef(r.PoolID)
 	ref, _ := ibDrv.objMgr.ReleaseIP(network.NetviewName, network.Cidr, r.Address, "")
@@ -198,7 +201,7 @@ func (ibDrv *InfobloxDriver) allocateNetwork(netview string, prefixLen uint, net
 	return
 }
 
-func (ibDrv *InfobloxDriver) RequestPool(r *ipamPluginSdk.RequestPoolRequest) (res *ipamPluginSdk.RequestPoolResponse, err error) {
+func (ibDrv *InfobloxDriver) RequestPool(r *ipamApi.RequestPoolRequest) (res *ipamApi.RequestPoolResponse, err error) {
 	log.Printf("RequestPoolRequest is '%v'\n", r)
 
 	netviewName := ibclient.BuildNetworkViewFromRef(r.AddressSpace).Name
@@ -235,12 +238,12 @@ func (ibDrv *InfobloxDriver) RequestPool(r *ipamPluginSdk.RequestPoolRequest) (r
 	}
 
 	if network != nil {
-		res = &ipamPluginSdk.RequestPoolResponse{PoolID: network.Ref, Pool: network.Cidr}
+		res = &ipamApi.RequestPoolResponse{PoolID: network.Ref, Pool: network.Cidr}
 	}
 	return
 }
 
-func (ibDrv *InfobloxDriver) ReleasePool(r *ipamPluginSdk.ReleasePoolRequest) error {
+func (ibDrv *InfobloxDriver) ReleasePool(r *ipamApi.ReleasePoolRequest) error {
 
 	if len(r.PoolID) > 0 {
 		networkFromRef := ibclient.BuildNetworkFromRef(r.PoolID)

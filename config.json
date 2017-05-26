@@ -1,26 +1,47 @@
 {
-    "Description": "Infoblox IPAM plugin for Docker",
-    "Documentation": "http://github.com/infobloxopen/docker-infoblox",
-    "Entrypoint": ["/ipam-driver", "--conf-file", "/etc/infoblox/docker-infoblox.conf"],
-    "Interface" : {
-        "Socket": "infoblox.sock",
-        "Types": ["docker.ipamdriver/1.0"]
-    },
-    "Network": {
-        "Type": "host"
-    },
-    "Env": [],
-	"Mounts": [
-		{
-			"Description" : "Location of the Infoblox config file (/etc/infoblox/docker-infoblox.conf)",
-			"Source" : "/etc/infoblox",
-			"Destination" : "/etc/infoblox",
-			"Type": "bind",
-			"Options": ["rbind"]
-		}
-	],
-    "Linux": {
-        "AllowAllDevices": true,
-        "Capabilities": ["CAP_SYS_ADMIN", "CAP_NET_ADMIN"]
-    }
+   "Description":"Infoblox IPAM plugin for Docker",
+   "Documentation":"http://github.com/infobloxopen/docker-infoblox",
+   "Entrypoint":[
+      "/ipam-driver",
+      "--conf-file",
+      "/etc/infoblox/docker-infoblox.conf"
+   ],
+   "Interface":{
+      "Socket":"infoblox.sock",
+      "Types":[
+         "docker.ipamdriver/1.0"
+      ]
+   },
+   "Network":{
+      "Type":"host"
+   },
+   "Env":[
+   ],
+   "Mounts":[
+      {
+         "Description":"Location of the Infoblox config file (/etc/infoblox/docker-infoblox.conf)",
+         "Source":"/etc/infoblox",
+         "Destination":"/etc/infoblox",
+         "Type":"bind",
+         "Options":[
+            "rbind"
+         ]
+      },
+      {
+         "Description":"/var/run/docker.sock is required to make call to Docker",
+         "Dource":"/var/run",
+         "Destination":"/var/run",
+         "Type":"bind",
+         "Options":[
+            "rbind"
+         ]
+      }
+   ],
+   "Linux":{
+      "AllowAllDevices":true,
+      "Capabilities":[
+         "CAP_SYS_ADMIN",
+         "CAP_NET_ADMIN"
+      ]
+   }
 }

@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/infobloxopen/docker-infoblox/common"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	"log"
-    "github.com/infobloxopen/docker-infoblox/common"
 )
 
 func main() {

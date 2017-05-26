@@ -1,77 +1,47 @@
-BINARY_NAME=ipam-driver-v2
-IMAGE_NAME=ipam-driver-v2
-LOCAL_IMAGE=$(IMAGE_NAME)
-DEV_IMAGE=$(DOCKERHUB_ID)/$(IMAGE_NAME)  # Requires DOCKERHUB_ID environment variable
-RELEASE_IMAGE=infoblox/$(IMAGE_NAME)
+PLUGIN_NAME=ishant8/ipam-plugin
+TOOLS_IMAGE=ishant8/ipam-tools
+RELEASE=1.1.0
 
-# Clean everything
-clean-all: clean clean-images
-CREATE_EA_DEFS=create_ea_defs
+#all: clean build-image #build-plugin create-plugin
 
-PLUGIN_NAME=ishant8/infoblox
-# Build binary - this is the default target
-build: $(BINARY_NAME) $(CREATE_EA_DEFS)
+clean-plugin:
+	rm -rf ./plugin ./bin
+	docker plugin disable ${PLUGIN_NAME}:${RELEASE} || true
+	docker plugin rm ${PLUGIN_NAME}:${RELEASE} || true
+	docker rm -vf tmp || true
+	docker rmi ipam-build-image || true
+	docker rmi ${PLUGIN_NAME}:rootfs || true
 
-# Build binary and docker image
-all: build image
-
-build-image:
-	docker build -t buildimage -f Dockerfile.build .
-	docker create --name build-container buildimage
+build-plugin-image:
+	docker build -t ipam-build-image -f Dockerfile.build .
+	docker create --name build-container ipam-build-image
 	docker cp build-container:/go/src/github.com/infobloxopen/docker-infoblox/bin .
 	docker rm -vf build-container
-	docker rmi buildimage
-	docker build -t $(IMAGE_NAME):rootfs .
+	docker rmi ipam-build-image
+	docker build -t ${PLUGIN_NAME}:rootfs .
 
-build-plugin:
+build-plugin: build-plugin-image
 	mkdir -p ./plugin/rootfs
-	docker create --name build-plugin-container $(IMAGE_NAME):rootfs
-	docker export build-plugin-container | tar -x -C ./plugin/rootfs
+	docker create --name tmp ${PLUGIN_NAME}:rootfs
+	docker export tmp | tar -x -C ./plugin/rootfs
 	cp config.json ./plugin/
-	docker rm -vf build-plugin-container
-
-# Build local docker image
-image: build
-	docker build -t $(LOCAL_IMAGE) .
-
-# Push image to user's docker hub. NOTE: requires DOCKERHUB_ID environment variable
-push: image
-	docker tag $(LOCAL_IMAGE) $(DEV_IMAGE)
-	docker push $(DEV_IMAGE)
-
-# Push image to infoblox docker hub
-push-release: image
-	docker tag $(LOCAL_IMAGE) $(RELEASE_IMAGE)
-	docker push $(RELEASE_IMAGE)
-
-$(BINARY_NAME):
-	mkdir -p bin
-	go build -o bin/$(BINARY_NAME) ./driver/
-
-$(CREATE_EA_DEFS):
-	mkdir -p bin
-	go build -o bin/$(CREATE_EA_DEFS) ./ea-defs/
-
-# Delete binary for clean build
-clean:
-	rm -rf $(BINARY_NAME) $(CREATE_EA_DEFS) bin/
-	rm -rf ./plugin
-	docker rm build-plugin-container
+	docker rm -vf tmp
 
 create-plugin:
-	docker plugin create $(PLUGIN_NAME) ./plugin
-	docker plugin enable $(PLUGIN_NAME)
+	docker plugin create ${PLUGIN_NAME}:${RELEASE} ./plugin
 
-delete-plugin:
-	docker plugin disable $(PLUGIN_NAME)
-	docker plugin rm $(PLUGIN_NAME)
+enable-plugin:
+	docker plugin enable ${PLUGIN_NAME}:${RELEASE}
 
-push-plugin:
-	docker plugin push ${PLUGIN_NAME}
+push-plugin:  clean build-plugin-image build-plugin create-plugin
+	docker plugin push ${PLUGIN_NAME}:${RELEASE}
 
-# Delete local docker images
-clean-images:
-	docker rmi -f $(LOCAL_IMAGE) $(DEV_IMAGE) $(RELEASE_IMAGE)
 
-# Clean everything
-clean-all: clean clean-images
+clean-tools-image:
+	echo "WIP"
+
+build-tools-image:
+	echo "WIP"
+
+push-tools-image: 
+	echo "WIP"
