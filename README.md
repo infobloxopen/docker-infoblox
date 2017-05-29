@@ -21,9 +21,8 @@ By default, the ipam-plugin assumes that the "Cloud Network Automation" licensed
 configuration required.
 
 1) Create configuration file for the plugin.
-create a file **'/etc/infoblox/docker-infoblox.conf'** and add the configuation parameters for the ipam-plugin. The configuration parameters are:
+create a file **`/etc/infoblox/docker-infoblox.conf`** and add the configuation parameters for the ipam-plugin. The configuration parameters are:
 
-```
 | Option | Type  | Description |
 | ------ | ----- | ----------- |
 | grid-host string   | String | IP of Infoblox Grid Host
@@ -31,24 +30,16 @@ create a file **'/etc/infoblox/docker-infoblox.conf'** and add the configuation 
 | wapi-username | String | Infoblox WAPI Username
 | wapi-password | String | Infoblox WAPI Password
 | wapi-version | String | Infoblox WAPI Version. (default "2.0")
-| ssl-verify  | String | Specifies whether (true/false) to verify server certificate.
-              |      |  If a file path is specified, it is assumed to be a certificate
-              |      | file and will be used to verify server certificate.
+| ssl-verify  | String | Specifies whether (true/false) to verify server certificate. If a file path is specified, it is assumed to be a certificate file and will be used to verify server certificate.
 | http-request-timeout | Integer | Infoblox WAPI request timeout in seconds. (default 60)
 | http-pool-connections | Integer | Infoblox WAPI request connection pool size. (default 10)
 | global-view  | String | Infoblox Network View for Global Address Space (default "default")
-| global-network-container | String | Subnets will be allocated from this container when
-                           |        |  --subnet is not specified during network creation
-| global-prefix-length | Integer | The default CIDR prefix length when allocating a global
-                       |         |  subnet. (default 24)
-| local-view | String | Infoblox Network View for Local Address Space
-             |        | (default "default")
-| local-network-container | String | Subnets will be allocated from this container when
-                          |        | --subnet is not specified during network creation
-| local-prefix-length | Integer | The default CIDR prefix length when allocating a local
-                      |         | subnet. (default 24)
+| global-network-container | String | Subnets will be allocated from this container when --subnet is not specified during network creation
+| global-prefix-length | Integer | The default CIDR prefix length when allocating a global subnet. (default 24)
+| local-view | String | Infoblox Network View for Local Address Space (default "default")
+| local-network-container | String | Subnets will be allocated from this container when --subnet is not specified during network creation
+| local-prefix-length | Integer | The default CIDR prefix length when allocating a local subnet. (default 24)
 
-```
 
 A sample plugin configuration file looks like this:
 ```
@@ -73,7 +64,7 @@ local-prefix-length=25
 
 
 2) Installing plugin from the Docker Hub
-'''
+```
 $ docker plugin install infoblox/ipam-plugin:v1.1.0
 
 Plugin "infoblox/ipam-plugin:v1.1.0" is requesting the following privileges:
@@ -84,7 +75,7 @@ Plugin "infoblox/ipam-plugin:v1.1.0" is requesting the following privileges:
  - capabilities: [CAP_SYS_ADMIN CAP_NET_ADMIN]
 Do you grant the above permissions? [y/N]
 
-'''
+```
 
 The plugin requests the following priviliges:
   * access to the host network
@@ -140,15 +131,15 @@ $ docker run -it --network priv-net alpine sh
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     inet 127.0.0.1/8 scope host lo
        valid_lft forever preferred_lft forever
-    inet6 ::1/128 scope host 
+    inet6 ::1/128 scope host
        valid_lft forever preferred_lft forever
-49: eth0@if50: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP 
+49: eth0@if50: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP
     link/ether 02:42:ae:aa:e4:1c brd ff:ff:ff:ff:ff:ff
     inet 192.168.3.2/25 scope global eth0
        valid_lft forever preferred_lft forever
-    inet6 fe80::42:aeff:feaa:e41c/64 scope link 
+    inet6 fe80::42:aeff:feaa:e41c/64 scope link
        valid_lft forever preferred_lft forever
-/ # 
+/ #
 
 ```
 
