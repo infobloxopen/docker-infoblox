@@ -1,26 +1,24 @@
-ipam-plugin
-=============
+# ipam-plugin
 
-Docker IPAM Plugin
-------------------
+## Docker IPAM Plugin
 
 Infoblox ipam-plugin is a Docker Engine managed plugin that interfaces with Infoblox
 to provide IP Address Management services for the Docker containers.
 
-Prerequisite
-------------
+### Prerequisite
+
 To use the driver, you need access to the Infoblox DDI product. For evaluation purposes, you can download a
 virtual version of the product from the Infoblox Download Center (https://www.infoblox.com/infoblox-download-center)
 Alternatively, if you are an existing Infoblox customer, you can download it from the support site.
 
 Refer to [CONFIG.md](docs/CONFIG.md) on how to configure vNIOS.
 
-Installation
-------------
+### Installation
+
 By default, the ipam-plugin assumes that the "Cloud Network Automation" licensed feature is activated in the NIOS. Should this not be the case, refer to "Manual Configuration of Cloud Extensible Attributes" in CONFIG.md for additional
 configuration required.
 
-1) Create configuration file for the plugin.
+##### 1) Create configuration file for the plugin.
 create a file **`/etc/infoblox/docker-infoblox.conf`** and add the configuation parameters for the ipam-plugin. The configuration parameters are:
 
 | Option | Type  | Description |
@@ -63,7 +61,7 @@ local-prefix-length=25
 ```
 
 
-2) Installing plugin from the Docker Hub
+##### 2) Installing plugin from the Docker Hub
 ```
 $ docker plugin install infoblox/ipam-plugin:v1.1.0
 
@@ -92,8 +90,8 @@ DOCKER_API_VERSION=1.23
 export DOCKER_API_VERSION
 ```
 
-Usage
------
+### Usage
+
 To start using the driver, a docker network needs to be created specifying the driver using the --ipam-driver option:
 ```
 $ docker network create --ipam-driver=infoblox/ipam-plugin:v1.1.0 priv-net
@@ -144,6 +142,6 @@ $ docker run -it --network priv-net alpine sh
 ```
 
 
-Build
------
+### Build
+
 For dependencies and build instructions, refer to ```BUILD.md```.
