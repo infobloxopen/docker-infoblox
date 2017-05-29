@@ -29,7 +29,7 @@
       },
       {
          "Description":"/var/run/docker.sock is required to make call to Docker",
-         "Dource":"/var/run",
+         "Source":"/var/run",
          "Destination":"/var/run",
          "Type":"bind",
          "Options":[

@@ -1,19 +1,11 @@
-ipam-driver
+ipam-plugin
 =============
 
-Docker (libnetwork) driver for IPAM
------------------------------------
+Docker IPAM Plugin
+------------------
 
-ipam-driver is a Docker libnetwork driver that interfaces with Infoblox to provide IP Address Management
-services. libnetwork is the library provided by Docker that allows third-party drivers for container
-networking.
-
-```
-NOTE: There is a limitation in Swarm Mode introduced in Docker 1.12 where IPAM plugins are not supported.
-As a result, the ipam-driver cannot be used in that configuration, althought the driver still works in
-a traditional Docker Swarm. It is expected that this limitation will be fixed in an upcoming Docker
-release, and would therefore enable the ipam-driver to work in Swarm Mode.
-```
+Infoblox ipam-plugin is a Docker Engine managed plugin that interfaces with Infoblox
+to provide IP Address Management services for the Docker containers.
 
 Prerequisite
 ------------
@@ -21,99 +13,86 @@ To use the driver, you need access to the Infoblox DDI product. For evaluation p
 virtual version of the product from the Infoblox Download Center (https://www.infoblox.com/infoblox-download-center)
 Alternatively, if you are an existing Infoblox customer, you can download it from the support site.
 
-Refer to CONFIG.md on how to configure vNIOS.
-
-Build
------
-For dependencies and build instructions, refer to ```BUILD.md```.
+Refer to [CONFIG.md](docs/CONFIG.md) on how to configure vNIOS.
 
 Installation
 ------------
-By default, the ipam-driver assumes that the "Cloud Network Automation" licensed feature is activated. Should
-this not be the case, refer to "Manual Configuration of Cloud Extensible Attributes" in CONFIG.md for additional
+By default, the ipam-plugin assumes that the "Cloud Network Automation" licensed feature is activated in the NIOS. Should this not be the case, refer to "Manual Configuration of Cloud Extensible Attributes" in CONFIG.md for additional
 configuration required.
 
-Run Executable
---------------
-ipam-driver accepts a number of arguments which can be listed by specifying -h:
+1) Create configuration file for the plugin.
+create a file **'/etc/infoblox/docker-infoblox.conf'** and add the configuation parameters for the ipam-plugin. The configuration parameters are:
 
 ```
-ubuntu$ ./ipam-driver --help
-Usage of ./ipam-driver:
-  -conf-file
-        File path of configuration file (see below)
-  -driver-name string
-        Name of Infoblox IPAM driver (default "infoblox")
-  -global-network-container string
-        Subnets will be allocated from this container when --subnet is not specified during network creation (default "172.18.0.0/16")
-  -global-prefix-length uint
-        The default CIDR prefix length when allocating a global subnet. (default 24)
-  -global-view string
-        Infoblox Network View for Global Address Space (default "default")
-  -grid-host string
-        IP of Infoblox Grid Host (default "192.168.124.200")
-  -local-network-container string
-        Subnets will be allocated from this container when --subnet is not specified during network creation (default "192.168.0.0/16")
-  -local-prefix-length uint
-        The default CIDR prefix length when allocating a local subnet. (default 24)
-  -local-view string
-        Infoblox Network View for Local Address Space (default "default")
-  -plugin-dir string
-        Docker plugin directory where driver socket is created (default "/run/docker/plugins")
-  -ssl-verify string
-        Specifies whether (true/false) to verify server certificate. If a file path is specified, it is assumed to be a certificate file and will be used to verify server certificate.
-  -wapi-password string
-        Infoblox WAPI Password
-  -wapi-port string
-        Infoblox WAPI Port. (default "443")
-  -wapi-username string
-        Infoblox WAPI Username
-  -wapi-version string
-        Infoblox WAPI Version. (default "2.0")
-  -http-request_timeout
-        Infoblox WAPI request timeout in seconds. (default 60)
-  -http-pool-connections
-        Infoblox WAPI request connection pool size. (default 10)
-```
-
-For example,
+| Option | Type  | Description |
+| ------ | ----- | ----------- |
+| grid-host string   | String | IP of Infoblox Grid Host
+| wapi-port  | String | Infoblox WAPI Port. (default "443")
+| wapi-username | String | Infoblox WAPI Username
+| wapi-password | String | Infoblox WAPI Password
+| wapi-version | String | Infoblox WAPI Version. (default "2.0")
+| ssl-verify  | String | Specifies whether (true/false) to verify server certificate.
+              |      |  If a file path is specified, it is assumed to be a certificate
+              |      | file and will be used to verify server certificate.
+| http-request-timeout | Integer | Infoblox WAPI request timeout in seconds. (default 60)
+| http-pool-connections | Integer | Infoblox WAPI request connection pool size. (default 10)
+| global-view  | String | Infoblox Network View for Global Address Space (default "default")
+| global-network-container | String | Subnets will be allocated from this container when
+                           |        |  --subnet is not specified during network creation
+| global-prefix-length | Integer | The default CIDR prefix length when allocating a global
+                       |         |  subnet. (default 24)
+| local-view | String | Infoblox Network View for Local Address Space
+             |        | (default "default")
+| local-network-container | String | Subnets will be allocated from this container when
+                          |        | --subnet is not specified during network creation
+| local-prefix-length | Integer | The default CIDR prefix length when allocating a local
+                      |         | subnet. (default 24)
 
 ```
-./ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --local-view=local_view --local-network-container="192.168.0.0/20,192.169.0.0/22" --local-prefix-length=25 --global-view=global_view --global-network-container="172.18.0.0/16" --global-prefix-length=24
+
+A sample plugin configuration file looks like this:
 ```
-
-The command need to be executed with root permission.
-
-If the ```conf-file``` option is specified in the command line argument, it specifies a configuration
-file that accept the same set of parameters (except ```conf_file```) in the following format:
-
-```
-[plugin_config]
-driver_name="infoblox"
-plugin_dir="/run/docker/plugins"
-
 [grid_config]
-grid_host="192.168.124.200"
-wapi_port="443"
-wapi_username="admin"
-wapi_password="infoblox"
-wapi_version="2.0"
-ssl_verify="false"
-http_request_timeout=60
-http_pool_connections=10
+grid-host="10.120.21.150"
+wapi-port="443"
+wapi-username="infoblox"
+wapi-password="infoblox"
+wapi-version="2.0"
+ssl-verify="false"
+http-request-timeout=60
+http-pool-connections=10
 
 [ipam_config]
-global_view="default"
-global_container="172.18.0.0/16"
-global_prefix=16
-local_view="default"
-local_container="192.168.0.0/16"
-local_prefix=24
+global-view="global_view"
+global-network-container="172.18.0.0/16"
+global-prefix-length=24
+local-view="local_view"
+local-network-container="192.168.0.0/20,192.169.0.0/22"
+local-prefix-length=25
 ```
 
-If the same parameter is specified in both the configuration file and command line argument, the
-value specified in the command line argument takes precedence.
 
+2) Installing plugin from the Docker Hub
+'''
+$ docker plugin install infoblox/ipam-plugin:v1.1.0
+
+Plugin "infoblox/ipam-plugin:v1.1.0" is requesting the following privileges:
+ - network: [host]
+ - mount: [/etc/infoblox]
+ - mount: [/var/run]
+ - allow-all-devices: [true]
+ - capabilities: [CAP_SYS_ADMIN CAP_NET_ADMIN]
+Do you grant the above permissions? [y/N]
+
+'''
+
+The plugin requests the following priviliges:
+  * access to the host network
+  * mounts /etc/infoblox directory on the host as a volume to container to read configuration file
+  * mounts /var/run directory on the host as a volume to container to access docker socket file
+
+
+TODO : Need to update config.json to fix this
 By default, ipam-driver uses Docker API Version 1.22 to access Docker Remote API.
 The default can be overridden using the DOCKER_API_VERSION environment variable prior to running the driver. For example,
 
@@ -122,43 +101,19 @@ DOCKER_API_VERSION=1.23
 export DOCKER_API_VERSION
 ```
 
-For convenience, a script called "run.sh" is provided which can be edited to specify the desired options.
-
-
-Run Container
-------------
-The best way to experiment with the driver is to run it as a container.
-
-A pre-built docker image can be pulled from Docker Hub using the following command:
-```
-docker pull infoblox/ipam-driver
-```
-
-After successfully pulling the image, you use the ```docker run``` command to run the driver. For exampe:
-```
-docker run -e DOCKER_API_VERSION=1.22 -v /var/run:/var/run -v /run/docker:/run/docker infoblox/ipam-driver --grid-host=192.168.124.200 --wapi-username=cloudadmin --wapi-password=cloudadmin --local-view=local_view --local-network-container="192.168.0.0/20,192.169.0.0/22" --local-prefix-length=25 --global-view=global_view --global-network-container="172.18.0.0/16" --global-prefix-length=24
-```
-
-Note that the -v options are necessary to provide the container access to the specified directories on the
-host file system.
-
-For convenience, a script called "run-container.sh" is provided.
-
 Usage
 -----
 To start using the driver, a docker network needs to be created specifying the driver using the --ipam-driver option:
 ```
-sudo docker network create --ipam-driver=infoblox priv-net
+$ docker network create --ipam-driver=infoblox/ipam-plugin:v1.1.0 priv-net
 ```
-This creates a docker network called "priv-net" which uses "infoblox" as the IPAM driver and the default "bridge"
-driver as the network driver. A network will be automatically allocated from the list of network containers
+This creates a docker network called "priv-net" which uses "infoblox" as the IPAM driver and the default "bridge" driver as the network driver. A network will be automatically allocated from the list of network containers
 specified during driver start up.
 
-By default, the network will be created using the default prefix length specified during driver start up. You
-can override this using the --ipam-opt option. For example:
+By default, the network will be created using the default prefix length specified during driver start up. You can override this using the --ipam-opt option. For example:
 
 ```
-sudo docker network create --ipam-driver=infoblox --ipam-opt="prefix-length=24" priv-net-2
+$ docker network create --ipam-driver=infoblox --ipam-opt="prefix-length=24" priv-net-2
 ```
 
 Additionally, if you are deploying containers in a cluster, you can specify "network-name" using the --ipam-opt option.
@@ -166,7 +121,7 @@ This will be used as an identifier so that docker networks created on different 
 space. For example:
 
 ```
-sudo docker network create --ipam-driver=infoblox --ipam-opt="network-name=blue" blue-net
+$ docker network create --ipam-driver=infoblox --ipam-opt="network-name=blue" blue-net
 ```
 This will allocate a network, say, 192.168.10.0/24, from the default address pool. Additionally, the network will be
 tagged in Infoblox with the network name "blue". Should the same command be issued on a different host, the driver will
@@ -175,11 +130,29 @@ of allocating a new one.
 
 
 After the network is created, Docker containers can be started attaching to the "priv-net" network created above.
-For example, the following command run the "ubuntu" image:
+For example, the following command run the "alpine" image:
 
 ```
-sudo docker run -i -t --net=priv-net --name=ubuntu1 ubuntu
+$ docker run -it --network priv-net alpine sh
+
+/ # ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+49: eth0@if50: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP 
+    link/ether 02:42:ae:aa:e4:1c brd ff:ff:ff:ff:ff:ff
+    inet 192.168.3.2/25 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:aeff:feaa:e41c/64 scope link 
+       valid_lft forever preferred_lft forever
+/ # 
+
 ```
 
-When the container comes up, verify using the "ifconfig" command that IP has been successfully provisioned
-from Infoblox.
+
+Build
+-----
+For dependencies and build instructions, refer to ```BUILD.md```.

@@ -33,7 +33,7 @@ create-plugin:
 enable-plugin:
 	docker plugin enable ${PLUGIN_NAME}:${RELEASE}
 
-push-plugin:  clean build-plugin-image build-plugin create-plugin
+push-plugin:  clean-plugin build-plugin-image build-plugin create-plugin
 	docker plugin push ${PLUGIN_NAME}:${RELEASE}
 
 
