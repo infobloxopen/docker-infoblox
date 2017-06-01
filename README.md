@@ -115,6 +115,8 @@ In order to use  a configuration file, write the configuration file in a directo
 
 ```
 mkdir /etc/infoblox
+
+# Add the configuration parameters in this file
 vim /etc/infoblox/infoblox.conf
 
 docker run -e DOCKER_API_VERSION=1.22 -v /var/run:/var/run -v /run/docker:/run/docker -v /etc/infoblox:/etc/infoblox infoblox/ipam-driver --conf-file=/etc/infoblox/infoblox.conf
