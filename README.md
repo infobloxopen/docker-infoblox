@@ -111,6 +111,17 @@ local_container="192.168.0.0/16"
 local_prefix=24
 ```
 
+In order to use  a configuration file, write the configuration file in a directory and mount that directory as a volume to the container.
+
+```
+mkdir /etc/infoblox
+
+# Add the configuration parameters in this file
+vim /etc/infoblox/infoblox.conf
+
+docker run -e DOCKER_API_VERSION=1.22 -v /var/run:/var/run -v /run/docker:/run/docker -v /etc/infoblox:/etc/infoblox infoblox/ipam-driver --conf-file=/etc/infoblox/infoblox.conf
+```
+
 If the same parameter is specified in both the configuration file and command line argument, the
 value specified in the command line argument takes precedence.
 
