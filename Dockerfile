@@ -4,6 +4,7 @@ RUN apk update
 
 RUN mkdir -p /run/docker/plugins
 
-COPY bin/ipam-driver ipam-driver
+COPY bin/ipam-driver /ipam-driver
+COPY launch.sh /launch.sh
 
-ENTRYPOINT ["/ipam-driver", "--conf-file", "/etc/infoblox/docker-infoblox.conf"]
+ENTRYPOINT ["/launch.sh"]

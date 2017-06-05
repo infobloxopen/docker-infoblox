@@ -1,9 +1,13 @@
-PLUGIN_NAME=ishant8/ipam-plugin
-TOOLS_IMAGE=ishant8/ipam-tools
+ifeq ($(DOCKERHUB_ID),)
+    PLUGIN_NAME=ipam-plugin
+	TOOLS_IMAGE=ipam-tools
+else
+    PLUGIN_NAME=${DOCKERHUB_ID}/ipam-plugin
+    TOOLS_IMAGE=${DOCKERHUB_ID}/ipam-tools
+endif
 RELEASE=1.1.0
 
-#all: clean build-image #build-plugin create-plugin
-
+.PHONY: clean-plugin
 clean-plugin:
 	rm -rf ./plugin ./bin
 	docker plugin disable ${PLUGIN_NAME}:${RELEASE} || true
@@ -12,6 +16,7 @@ clean-plugin:
 	docker rmi ipam-build-image || true
 	docker rmi ${PLUGIN_NAME}:rootfs || true
 
+.PHONY: build-plugin-image
 build-plugin-image:
 	docker build -t ipam-build-image -f Dockerfile.build .
 	docker create --name build-container ipam-build-image
@@ -20,6 +25,7 @@ build-plugin-image:
 	docker rmi ipam-build-image
 	docker build -t ${PLUGIN_NAME}:rootfs .
 
+.PHONY: build-plugin
 build-plugin: build-plugin-image
 	mkdir -p ./plugin/rootfs
 	docker create --name tmp ${PLUGIN_NAME}:rootfs
@@ -27,15 +33,17 @@ build-plugin: build-plugin-image
 	cp config.json ./plugin/
 	docker rm -vf tmp
 
-create-plugin:
+.PHONY: create-plugin
+create-plugin: 
 	docker plugin create ${PLUGIN_NAME}:${RELEASE} ./plugin
 
+.PHONY: enable-plugin
 enable-plugin:
 	docker plugin enable ${PLUGIN_NAME}:${RELEASE}
 
+.PHONY: push-plugin
 push-plugin:  clean-plugin build-plugin-image build-plugin create-plugin
 	docker plugin push ${PLUGIN_NAME}:${RELEASE}
-
 
 clean-tools-image:
 	echo "WIP"

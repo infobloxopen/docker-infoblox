@@ -2,9 +2,7 @@
    "Description":"Infoblox IPAM plugin for Docker",
    "Documentation":"http://github.com/infobloxopen/docker-infoblox",
    "Entrypoint":[
-      "/ipam-driver",
-      "--conf-file",
-      "/etc/infoblox/docker-infoblox.conf"
+      "/launch.sh"
    ],
    "Interface":{
       "Socket":"infoblox.sock",
@@ -16,6 +14,118 @@
       "Type":"host"
    },
    "Env":[
+     {
+       "Description": "NIOS Grid host IP or Hostname",
+       "Name": "GRID_HOST",
+       "Settable": [
+           "value"
+       ],
+       "Value": ""
+     },
+     {
+       "Description": "Infoblox WAPI Port",
+       "Name": "WAPI_PORT",
+       "Settable": [
+           "value"
+       ],
+       "Value": "443"
+     },
+     {
+       "Description": "Infoblox WAPI Username",
+       "Name": "WAPI_USERNAME",
+       "Settable": [
+           "value"
+       ],
+       "Value": ""
+     },
+     {
+       "Description": "Infoblox WAPI Password",
+       "Name": "WAPI_PASSWORD",
+       "Settable": [
+           "value"
+       ],
+       "Value": ""
+     },
+     {
+       "Description": "Infoblox WAPI Version",
+       "Name": "WAPI_VERSION",
+       "Settable": [
+           "value"
+       ],
+       "Value": "2.0"
+     },
+     {
+       "Description": "Specifies whether to verify server certificate",
+       "Name": "SSL_VERIFY",
+       "Settable": [
+           "value"
+       ],
+       "Value": "false"
+     },
+     {
+       "Description": "Infoblox WAPI request timeout in seconds",
+       "Name": "HTTP_REQUEST_TIMEOUT",
+       "Settable": [
+           "value"
+       ],
+       "Value": "60"
+     },
+     {
+       "Description": "Infoblox WAPI request connection pool size",
+       "Name": "HTTP_POOL_CONNECTIONS",
+       "Settable": [
+           "value"
+       ],
+       "Value": "10"
+     },
+     {
+       "Description": "Infoblox Network View for Global Address Space",
+       "Name": "GLOBAL_VIEW",
+       "Settable": [
+           "value"
+       ],
+       "Value": "default"
+     },
+     {
+       "Description": "Subnets will be allocated from this container when --subnet is not specified during network creation",
+       "Name": "GLOBAL_NETWORK_CONTAINER",
+       "Settable": [
+           "value"
+       ],
+       "Value": ""
+     },
+     {
+       "Description": "The default CIDR prefix length when allocating a global subnet",
+       "Name": "GLOBAL_PREFIX_LENGTH",
+       "Settable": [
+           "value"
+       ],
+       "Value": "24"
+     },
+     {
+       "Description": "Infoblox Network View for Local Address Space",
+       "Name": "LOCAL_VIEW",
+       "Settable": [
+           "value"
+       ],
+       "Value": "default"
+     },
+     {
+       "Description": "Subnets will be allocated from this container when --subnet is not specified during network creation",
+       "Name": "LOCAL_NETWORK_CONTAINER",
+       "Settable": [
+           "value"
+       ],
+       "Value": ""
+     },
+     {
+       "Description": "The default CIDR prefix length when allocating a local subnet",
+       "Name": "LOCAL_PREFIX_LENGTH",
+       "Settable": [
+           "value"
+       ],
+       "Value": "24"
+     }
    ],
    "Mounts":[
       {
@@ -38,10 +148,5 @@
       }
    ],
    "Linux":{
-      "AllowAllDevices":true,
-      "Capabilities":[
-         "CAP_SYS_ADMIN",
-         "CAP_NET_ADMIN"
-      ]
    }
 }

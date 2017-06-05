@@ -3,13 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/docker/libnetwork/netlabel"
-	ibclient "github.com/infobloxopen/infoblox-go-client"
-	"strconv"
-	"log"
-	"strings"
 	"github.com/Sirupsen/logrus"
 	ipamApi "github.com/docker/go-plugins-helpers/ipam"
+	"github.com/docker/libnetwork/netlabel"
+	ibclient "github.com/infobloxopen/infoblox-go-client"
+	"log"
+	"strconv"
+	"strings"
 )
 
 type Container struct {

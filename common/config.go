@@ -3,7 +3,9 @@ package common
 import (
 	"flag"
 	"github.com/BurntSushi/toml"
+	"github.com/Sirupsen/logrus"
 	"os"
+	"path"
 )
 
 type GridConfig struct {
@@ -26,6 +28,8 @@ type IpamConfig struct {
 	LocalPrefixLength      uint   `toml:"local_prefix"`
 }
 
+const configFileDir = "/etc/infoblox"
+
 type Config struct {
 	ConfigFile string `toml:`
 	GridConfig `toml:"grid_config"`
@@ -37,7 +41,7 @@ func NewConfig() *Config {
 		ConfigFile: "",
 
 		GridConfig: GridConfig{
-			GridHost:            "192.168.124.200",
+			GridHost:            "",
 			WapiVer:             "2.0",
 			WapiPort:            "443",
 			WapiUsername:        "",
@@ -49,10 +53,10 @@ func NewConfig() *Config {
 
 		IpamConfig: IpamConfig{
 			GlobalNetview:          "default",
-			GlobalNetworkContainer: "global-network-container",
+			GlobalNetworkContainer: "",
 			GlobalPrefixLength:     24,
 			LocalNetview:           "default",
-			LocalNetworkContainer:  "192.168.0.0/16",
+			LocalNetworkContainer:  "",
 			LocalPrefixLength:      24,
 		},
 	}
@@ -65,21 +69,33 @@ func LoadFromCommandLine(config *Config) (*Config, error) {
 
 	flagSet := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
-	flagSet.StringVar(&config.ConfigFile, "conf-file", "", "File path of configuration file")
+	flagSet.StringVar(&config.ConfigFile, "conf-file-name", "",
+		"File name of configuration file")
+	flagSet.StringVar(&config.GridHost, "grid-host", config.GridHost,
+		"IP of Infoblox Grid Host")
+	flagSet.StringVar(&config.WapiVer, "wapi-version", config.WapiVer,
+		"Infoblox WAPI Version.")
+	flagSet.StringVar(&config.WapiPort, "wapi-port", config.WapiPort,
+		"Infoblox WAPI Port.")
+	flagSet.StringVar(&config.WapiUsername, "wapi-username", config.WapiUsername,
+		"Infoblox WAPI Username")
+	flagSet.StringVar(&config.WapiPassword, "wapi-password", config.WapiPassword,
+		"Infoblox WAPI Password")
+	flagSet.StringVar(&config.SslVerify, "ssl-verify", config.SslVerify,
+		"Specifies whether (true/false) to verify server certificate. If a file path is specified, it is assumed to be a certificate file and will be used to verify server certificate.")
+	flagSet.UintVar(&config.HttpRequestTimeout, "http-request-timeout", config.HttpRequestTimeout,
+		"Infoblox WAPI request timeout in seconds.")
+	flagSet.UintVar(&config.HttpPoolConnections, "http-pool-connections", config.HttpPoolConnections,
+		"Infoblox WAPI connection pool size.")
 
-	flagSet.StringVar(&config.GridHost, "grid-host", config.GridHost, "IP of Infoblox Grid Host")
-	flagSet.StringVar(&config.WapiVer, "wapi-version", config.WapiVer, "Infoblox WAPI Version.")
-	flagSet.StringVar(&config.WapiPort, "wapi-port", config.WapiPort, "Infoblox WAPI Port.")
-	flagSet.StringVar(&config.WapiUsername, "wapi-username", config.WapiUsername, "Infoblox WAPI Username")
-	flagSet.StringVar(&config.WapiPassword, "wapi-password", config.WapiPassword, "Infoblox WAPI Password")
-	flagSet.StringVar(&config.SslVerify, "ssl-verify", config.SslVerify, "Specifies whether (true/false) to verify server certificate. If a file path is specified, it is assumed to be a certificate file and will be used to verify server certificate.")
-	flagSet.UintVar(&config.HttpRequestTimeout, "http-request-timeout", config.HttpRequestTimeout, "Infoblox WAPI request timeout in seconds.")
-	flagSet.UintVar(&config.HttpPoolConnections, "http-pool-connections", config.HttpPoolConnections, "Infoblox WAPI connection pool size.")
-
-	flagSet.StringVar(&config.GlobalNetview, "global-view", config.GlobalNetview, "Infoblox Network View for Global Address Space")
-	flagSet.StringVar(&config.GlobalNetworkContainer, "global-network-container", config.GlobalNetworkContainer, "Subnets will be allocated from this container when --subnet is not specified during network creation")
-	flagSet.UintVar(&config.GlobalPrefixLength, "global-prefix-length", config.GlobalPrefixLength, "The default CIDR prefix length when allocating a global subnet.")
-	flagSet.StringVar(&config.LocalNetview, "local-view", config.LocalNetview, "Infoblox Network View for Local Address Space")
+	flagSet.StringVar(&config.GlobalNetview, "global-view", config.GlobalNetview,
+		"Infoblox Network View for Global Address Space")
+	flagSet.StringVar(&config.GlobalNetworkContainer, "global-network-container", config.GlobalNetworkContainer,
+		"Subnets will be allocated from this container when --subnet is not specified during network creation")
+	flagSet.UintVar(&config.GlobalPrefixLength, "global-prefix-length", config.GlobalPrefixLength,
+		"The default CIDR prefix length when allocating a global subnet.")
+	flagSet.StringVar(&config.LocalNetview, "local-view", config.LocalNetview,
+		"Infoblox Network View for Local Address Space")
 	flagSet.StringVar(&config.LocalNetworkContainer, "local-network-container", config.LocalNetworkContainer, "Subnets will be allocated from this container when --subnet is not specified during network creation")
 	flagSet.UintVar(&config.LocalPrefixLength, "local-prefix-length", config.LocalPrefixLength, "The default CIDR prefix length when allocating a local subnet.")
 
@@ -89,7 +105,7 @@ func LoadFromCommandLine(config *Config) (*Config, error) {
 }
 
 func LoadFromConfFile(config *Config) (*Config, error) {
-	// Just look for --conf-file flag
+	// Just look for --conf-file-name flag
 	tmpConfig, err := LoadFromCommandLine(NewConfig())
 	if tmpConfig == nil || err != nil {
 		return tmpConfig, err
@@ -97,7 +113,9 @@ func LoadFromConfFile(config *Config) (*Config, error) {
 
 	// Now load config file
 	if tmpConfig.ConfigFile != "" {
-		if _, err = toml.DecodeFile(tmpConfig.ConfigFile, config); err != nil {
+		configFilePath := path.Join(configFileDir, tmpConfig.ConfigFile)
+		logrus.Printf("Loading Config File %s\n", configFilePath)
+		if _, err = toml.DecodeFile(configFilePath, config); err != nil {
 			return nil, err
 		}
 	}

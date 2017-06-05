@@ -1,12 +1,12 @@
 package main
 
 import (
+	"github.com/Sirupsen/logrus"
 	apiclient "github.com/docker/engine-api/client"
 	ipamPluginSdk "github.com/docker/go-plugins-helpers/ipam"
 	"github.com/infobloxopen/docker-infoblox/common"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	ctx "golang.org/x/net/context"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -22,7 +22,7 @@ func getDockerID() (dockerID string, err error) {
 	// Default to Docker API Version corresponding to Docker v1.10
 	if os.Getenv("DOCKER_API_VERSION") == "" {
 		if err = os.Setenv("DOCKER_API_VERSION", "1.22"); err != nil {
-			log.Panicf("Cannot set default Docker API Version: '%s'", err)
+			logrus.Infof("Cannot set default Docker API Version: '%s'", err)
 			os.Exit(1)
 		}
 	}
@@ -58,10 +58,10 @@ type ipamCall struct {
 func main() {
 	config, err := common.LoadConfig()
 	if config == nil || err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
-	log.Printf("Socket File: '%s'", socketAddress)
+	logrus.Infof("Socket File: '%s'", socketAddress)
 
 	hostConfig := ibclient.HostConfig{
 		Host:     config.GridHost,
@@ -70,6 +70,7 @@ func main() {
 		Username: config.WapiUsername,
 		Password: config.WapiPassword,
 	}
+	logrus.Infof("HostConfig %v", hostConfig)
 
 	transportConfig := ibclient.NewTransportConfig(
 		config.SslVerify,
@@ -83,16 +84,16 @@ func main() {
 	conn, err := ibclient.NewConnector(hostConfig, transportConfig, requestBuilder, requestor)
 
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	dockerID, err := getDockerID()
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	if len(dockerID) > 0 {
-		log.Printf("Docker id is '%s'\n", dockerID)
+		logrus.Infof("Docker id is '%s'\n", dockerID)
 	}
 	objMgr := ibclient.NewObjectManager(conn, "Docker", dockerID)
 
