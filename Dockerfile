@@ -1,10 +1,7 @@
 FROM alpine
 
-RUN apk update
-
 RUN mkdir -p /run/docker/plugins
 
-COPY bin/ipam-driver /ipam-driver
-COPY launch.sh /launch.sh
+COPY bin/ipam-plugin /ipam-plugin
 
-ENTRYPOINT ["/launch.sh"]
+ENTRYPOINT ["/ipam-plugin"]

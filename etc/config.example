@@ -9,9 +9,9 @@ http_request_timeout=60
 http_pool_connections=10
 
 [ipam_config]
-global_view="default"
-global_container="172.18.0.0/16"
-global_prefix=16
-local_view="default"
-local_container="192.168.0.0/16"
-local_prefix=24
+global_view="global"
+global_network_container="172.18.0.0/24"
+global_prefix_length=25
+local_view="local"
+local_network_container="192.168.0.0/24"
+local_prefix_length=25

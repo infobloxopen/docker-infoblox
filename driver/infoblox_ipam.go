@@ -7,7 +7,6 @@ import (
 	ipamApi "github.com/docker/go-plugins-helpers/ipam"
 	"github.com/docker/libnetwork/netlabel"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -62,7 +61,7 @@ func (ibDrv *InfobloxDriver) RequestAddress(r *ipamApi.RequestAddressRequest) (*
 	macAddr := r.Options[netlabel.MacAddress]
 	if len(macAddr) == 0 {
 		macAddr = ibclient.MACADDR_ZERO
-		log.Printf("RequestAddressRequest contains empty MAC Address. '%s' will be used.\n", macAddr)
+		logrus.Infof("RequestAddressRequest contains empty MAC Address. '%s' will be used.\n", macAddr)
 	}
 
 	fixedAddr, _ := ibDrv.objMgr.GetFixedAddress(network.NetviewName, network.Cidr, "", macAddr)
@@ -71,7 +70,7 @@ func (ibDrv *InfobloxDriver) RequestAddress(r *ipamApi.RequestAddressRequest) (*
 			if fixedAddr.IPAddress != r.Address {
 				msg := fmt.Sprintf("Requested MAC '%s' is already associated with a difference IP '%s' (requested: '%s')",
 					macAddr, fixedAddr.IPAddress, r.Address)
-				log.Printf("RequestAddress: %s", msg)
+				logrus.Infof("RequestAddress: %s", msg)
 				return &ipamApi.RequestAddressResponse{}, errors.New(msg)
 			}
 		}
@@ -93,11 +92,11 @@ func (ibDrv *InfobloxDriver) RequestAddress(r *ipamApi.RequestAddressRequest) (*
 }
 
 func (ibDrv *InfobloxDriver) ReleaseAddress(r *ipamApi.ReleaseAddressRequest) error {
-	log.Printf("Releasing Address '%s' from Pool '%s'\n", r.Address, r.PoolID)
+	logrus.Infof("Releasing Address '%s' from Pool '%s'\n", r.Address, r.PoolID)
 	network := ibclient.BuildNetworkFromRef(r.PoolID)
 	ref, _ := ibDrv.objMgr.ReleaseIP(network.NetviewName, network.Cidr, r.Address, "")
 	if ref == "" {
-		log.Printf("***** IP Cannot be deleted '%s'! *******\n", r.Address)
+		logrus.Warnf("IP Cannot be deleted '%s'!\n", r.Address)
 	}
 
 	return nil
@@ -111,7 +110,7 @@ func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string,
 	if network != nil {
 		if n, ok := network.Ea["Network Name"]; !ok || n != networkName {
 			msg := fmt.Sprintf("Network (%s) already in use", network.Cidr)
-			log.Printf("requestSpecificNetwork: %s", msg)
+			logrus.Debugf("requestSpecificNetwork: %s", msg)
 			return nil, errors.New(msg)
 		}
 	} else {
@@ -122,7 +121,7 @@ func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string,
 		if networkByName != nil {
 			if networkByName.Cidr != pool {
 				msg := fmt.Sprintf("Network name (%s) has different CIDR (%s)", networkName, networkByName.Cidr)
-				log.Printf("requestSpecificNetwork: %s", msg)
+				logrus.Debugf("requestSpecificNetwork: %s", msg)
 				return nil, errors.New(msg)
 			}
 		}
@@ -130,7 +129,7 @@ func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string,
 
 	if network == nil {
 		network, err = ibDrv.objMgr.CreateNetwork(netview, pool, networkName)
-		log.Printf("requestSpecificNetwork: CreateNetwork returns '%s', err='%s'", *network, err)
+		logrus.Debugf("requestSpecificNetwork: CreateNetwork returns '%s', err='%s'", *network, err)
 	}
 
 	return network, err
@@ -167,7 +166,7 @@ func (ibDrv *InfobloxDriver) allocateNetworkHelper(addrSpace *InfobloxAddressSpa
 	}
 	container := nextAvailableContainer(addrSpace)
 	for container != nil {
-		log.Printf("Allocating network from Container:'%s'", container.NetworkContainer)
+		logrus.Infof("Allocating network from Container:'%s'", container.NetworkContainer)
 		if container.ContainerObj == nil {
 			var err error
 			container.ContainerObj, err = ibDrv.createNetworkContainer(addrSpace.NetviewName, container.NetworkContainer)
@@ -202,7 +201,7 @@ func (ibDrv *InfobloxDriver) allocateNetwork(netview string, prefixLen uint, net
 }
 
 func (ibDrv *InfobloxDriver) RequestPool(r *ipamApi.RequestPoolRequest) (res *ipamApi.RequestPoolResponse, err error) {
-	log.Printf("RequestPoolRequest is '%v'\n", r)
+	logrus.Debugf("RequestPoolRequest is '%v'\n", r)
 
 	netviewName := ibclient.BuildNetworkViewFromRef(r.AddressSpace).Name
 
@@ -225,7 +224,7 @@ func (ibDrv *InfobloxDriver) RequestPool(r *ipamApi.RequestPoolRequest) (res *ip
 			}
 		}
 		if networkByName != nil {
-			log.Printf("RequestNetwork: GetNetwork by name returns '%s'", *networkByName)
+			logrus.Debugf("RequestNetwork: GetNetwork by name returns '%s'", *networkByName)
 			network = networkByName
 		} else {
 			if opt, ok := r.Options["prefix-length"]; ok {
@@ -238,6 +237,7 @@ func (ibDrv *InfobloxDriver) RequestPool(r *ipamApi.RequestPoolRequest) (res *ip
 	}
 
 	if network != nil {
+		logrus.Infof("Network Allocated is %s \n", network.Cidr)
 		res = &ipamApi.RequestPoolResponse{PoolID: network.Ref, Pool: network.Cidr}
 	}
 	return
@@ -245,6 +245,7 @@ func (ibDrv *InfobloxDriver) RequestPool(r *ipamApi.RequestPoolRequest) (res *ip
 
 func (ibDrv *InfobloxDriver) ReleasePool(r *ipamApi.ReleasePoolRequest) error {
 
+	logrus.Debugf("Releasing Network %s\n", r.PoolID)
 	if len(r.PoolID) > 0 {
 		networkFromRef := ibclient.BuildNetworkFromRef(r.PoolID)
 		network, err := ibDrv.objMgr.GetNetwork(networkFromRef.NetviewName, networkFromRef.Cidr, nil)
@@ -260,7 +261,7 @@ func (ibDrv *InfobloxDriver) ReleasePool(r *ipamApi.ReleasePoolRequest) error {
 
 		ref, _ := ibDrv.objMgr.DeleteNetwork(r.PoolID, networkFromRef.NetviewName)
 		if len(ref) > 0 {
-			log.Printf("Network %s successfully deleted from Infoblox\n", r.PoolID)
+			logrus.Infof("Network %s successfully deleted from Infoblox\n", r.PoolID)
 		}
 	}
 

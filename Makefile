@@ -26,7 +26,7 @@ build-plugin-image:
 	docker build -t ${PLUGIN_NAME}:rootfs .
 
 .PHONY: build-plugin
-build-plugin: build-plugin-image
+build-plugin:
 	mkdir -p ./plugin/rootfs
 	docker create --name tmp ${PLUGIN_NAME}:rootfs
 	docker export tmp | tar -x -C ./plugin/rootfs

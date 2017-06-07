@@ -1,44 +1,45 @@
 package common
 
 import (
-	"flag"
 	"github.com/BurntSushi/toml"
 	"github.com/Sirupsen/logrus"
-	"os"
+	"github.com/caarlos0/env"
 	"path"
 )
 
+const configFileDir = "/etc/infoblox"
+
 type GridConfig struct {
-	GridHost            string `toml:"grid_host"`
-	WapiVer             string `toml:"wapi_version"`
-	WapiPort            string `toml:"wapi_port"`
-	WapiUsername        string `toml:"wapi_username"`
-	WapiPassword        string `toml:"wapi_password"`
-	SslVerify           string `toml:"ssl_verify"`
-	HttpRequestTimeout  uint   `toml:"http_request_timeout"`
-	HttpPoolConnections uint   `toml:"http_pool_connections"`
+	GridHost            string `toml:"grid_host" env:"GRID_HOST"`
+	WapiVer             string `toml:"wapi_version" env:"WAPI_VERSION"`
+	WapiPort            string `toml:"wapi_port" env:"WAPI_PORT"`
+	WapiUsername        string `toml:"wapi_username" env:"WAPI_USERNAME"`
+	WapiPassword        string `toml:"wapi_password" env:"WAPI_PASSWORD"`
+	SslVerify           string `toml:"ssl_verify" env:"SSL_VERIFY"`
+	HttpRequestTimeout  uint   `toml:"http_request_timeout" env:"HTTP_REQUEST_TIMEOUT"`
+	HttpPoolConnections uint   `toml:"http_pool_connections" env:"HTTP_POOL_CONNECTIONS"`
 }
 
 type IpamConfig struct {
-	GlobalNetview          string `toml:"global_view"`
-	GlobalNetworkContainer string `toml:"global_container"`
-	GlobalPrefixLength     uint   `toml:"global_prefix"`
-	LocalNetview           string `toml:"local_view"`
-	LocalNetworkContainer  string `toml:"local_container"`
-	LocalPrefixLength      uint   `toml:"local_prefix"`
+	GlobalNetview          string `toml:"global_view" env:"GLOBAL_VIEW"`
+	GlobalNetworkContainer string `toml:"global_network_container" env:"GLOBAL_NETWORK_CONTAINER"`
+	GlobalPrefixLength     uint   `toml:"global_prefix_length" env:"GLOBAL_PREFIX_LENGTH"`
+	LocalNetview           string `toml:"local_view" env:"LOCAL_VIEW"`
+	LocalNetworkContainer  string `toml:"local_network_container" env:"LOCAL_NETWORK_CONTAINER"`
+	LocalPrefixLength      uint   `toml:"local_prefix_length" env:"LOCAL_PREFIX_LENGTH"`
 }
 
-const configFileDir = "/etc/infoblox"
-
 type Config struct {
-	ConfigFile string `toml:`
+	ConfigFile string `toml:"" env:"CONF_FILE_NAME"`
+	Debug      bool   `toml:"debug" env:"DEBUG"`
 	GridConfig `toml:"grid_config"`
 	IpamConfig `toml:"ipam_config"`
 }
 
-func NewConfig() *Config {
-	return &Config{
+func NewConfig() Config {
+	return Config{
 		ConfigFile: "",
+		Debug:      false,
 
 		GridConfig: GridConfig{
 			GridHost:            "",
@@ -62,78 +63,48 @@ func NewConfig() *Config {
 	}
 }
 
-func LoadFromCommandLine(config *Config) (*Config, error) {
-	if config == nil {
-		config = NewConfig()
-	}
+func LoadFromConfFile(config *Config) error {
+	// Look for the CONF_FILE_NAME environment variable
+	// and load in the Config struct
+	logrus.Infoln("Loading IPAM Configuration from the file")
 
-	flagSet := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-
-	flagSet.StringVar(&config.ConfigFile, "conf-file-name", "",
-		"File name of configuration file")
-	flagSet.StringVar(&config.GridHost, "grid-host", config.GridHost,
-		"IP of Infoblox Grid Host")
-	flagSet.StringVar(&config.WapiVer, "wapi-version", config.WapiVer,
-		"Infoblox WAPI Version.")
-	flagSet.StringVar(&config.WapiPort, "wapi-port", config.WapiPort,
-		"Infoblox WAPI Port.")
-	flagSet.StringVar(&config.WapiUsername, "wapi-username", config.WapiUsername,
-		"Infoblox WAPI Username")
-	flagSet.StringVar(&config.WapiPassword, "wapi-password", config.WapiPassword,
-		"Infoblox WAPI Password")
-	flagSet.StringVar(&config.SslVerify, "ssl-verify", config.SslVerify,
-		"Specifies whether (true/false) to verify server certificate. If a file path is specified, it is assumed to be a certificate file and will be used to verify server certificate.")
-	flagSet.UintVar(&config.HttpRequestTimeout, "http-request-timeout", config.HttpRequestTimeout,
-		"Infoblox WAPI request timeout in seconds.")
-	flagSet.UintVar(&config.HttpPoolConnections, "http-pool-connections", config.HttpPoolConnections,
-		"Infoblox WAPI connection pool size.")
-
-	flagSet.StringVar(&config.GlobalNetview, "global-view", config.GlobalNetview,
-		"Infoblox Network View for Global Address Space")
-	flagSet.StringVar(&config.GlobalNetworkContainer, "global-network-container", config.GlobalNetworkContainer,
-		"Subnets will be allocated from this container when --subnet is not specified during network creation")
-	flagSet.UintVar(&config.GlobalPrefixLength, "global-prefix-length", config.GlobalPrefixLength,
-		"The default CIDR prefix length when allocating a global subnet.")
-	flagSet.StringVar(&config.LocalNetview, "local-view", config.LocalNetview,
-		"Infoblox Network View for Local Address Space")
-	flagSet.StringVar(&config.LocalNetworkContainer, "local-network-container", config.LocalNetworkContainer, "Subnets will be allocated from this container when --subnet is not specified during network creation")
-	flagSet.UintVar(&config.LocalPrefixLength, "local-prefix-length", config.LocalPrefixLength, "The default CIDR prefix length when allocating a local subnet.")
-
-	flagSet.Parse(os.Args[1:])
-
-	return config, nil
-}
-
-func LoadFromConfFile(config *Config) (*Config, error) {
-	// Just look for --conf-file-name flag
-	tmpConfig, err := LoadFromCommandLine(NewConfig())
-	if tmpConfig == nil || err != nil {
-		return tmpConfig, err
+	err := env.Parse(config)
+	if err != nil {
+		return err
 	}
 
 	// Now load config file
-	if tmpConfig.ConfigFile != "" {
-		configFilePath := path.Join(configFileDir, tmpConfig.ConfigFile)
-		logrus.Printf("Loading Config File %s\n", configFilePath)
+	if config.ConfigFile != "" {
+		configFilePath := path.Join(configFileDir, config.ConfigFile)
+		logrus.Infof("Found Configuration file %s\n", configFilePath)
 		if _, err = toml.DecodeFile(configFilePath, config); err != nil {
-			return nil, err
+			logrus.Errorf("Cannot load the configuration file %s, %s\n", configFilePath, err)
+			return err
 		}
 	}
-
-	return config, err
-
+	return nil
 }
 
-func LoadConfig() (config *Config, err error) {
-	config = NewConfig()
+func LoadConfig() (*Config, error) {
+	config := NewConfig()
 
-	if config, err = LoadFromConfFile(config); config == nil || err != nil {
-		return
+	if err := LoadFromConfFile(&config); err != nil {
+		return &config, err
 	}
 
-	if config, err = LoadFromCommandLine(config); config == nil || err != nil {
-		return
+	logrus.Infoln("Loading IPAM Configuration from the environment variables")
+	// Look for the environment variables in GridConfig struct
+	if err := env.Parse(&config.GridConfig); err != nil {
+		logrus.Errorf("Failed to parse GridConfig environment variables, %s", err)
+		return &config, err
 	}
 
-	return
+	// Look for the environment variables in IpamConfig struct
+	if err := env.Parse(&config.IpamConfig); err != nil {
+		logrus.Errorf("Failed to parse IpamConfig environment variables, %s", err)
+		return &config, err
+	}
+
+	logrus.Infof("Configuration successfully loaded\n")
+	return &config, nil
 }

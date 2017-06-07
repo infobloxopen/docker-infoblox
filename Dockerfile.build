@@ -1,7 +1,7 @@
 FROM golang:1.7-alpine
 
 # FIXME: Remove git once vendoring is done
-RUN apk add --no-cache --virtual .build-deps \
+RUN apk --update add --no-cache --virtual .build-deps \
     git gcc libc-dev linux-headers
 
 # FIXME: Remove these once vendoring is done
@@ -11,10 +11,11 @@ RUN go get github.com/docker/go-plugins-helpers/ipam \
     && go get github.com/docker/libnetwork \
     && go get github.com/Sirupsen/logrus \
     && go get github.com/docker/engine-api/client \
+    && go get github.com/caarlos0/env \
     && go get github.com/infobloxopen/infoblox-go-client
 
 COPY . /go/src/github.com/infobloxopen/docker-infoblox
 WORKDIR /go/src/github.com/infobloxopen/docker-infoblox
 
-RUN go build -o bin/ipam-driver ./driver \
+RUN go build -o bin/ipam-plugin ./driver \
     && go build -o bin/create_ea_defs ./ea-defs

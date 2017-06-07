@@ -61,7 +61,12 @@ func main() {
 		logrus.Fatal(err)
 	}
 
+	if config.Debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
 	logrus.Infof("Socket File: '%s'", socketAddress)
+	logrus.Debugf("Configuration options : %+v\n", config)
 
 	hostConfig := ibclient.HostConfig{
 		Host:     config.GridHost,
@@ -70,7 +75,6 @@ func main() {
 		Username: config.WapiUsername,
 		Password: config.WapiPassword,
 	}
-	logrus.Infof("HostConfig %v", hostConfig)
 
 	transportConfig := ibclient.NewTransportConfig(
 		config.SslVerify,
