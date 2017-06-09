@@ -50,7 +50,7 @@
        ]
      },
      {
-       "Description": "Specifies whether to verify server certificate",
+       "Description": "Specifies whether to verify server certificate or not",
        "Name": "SSL_VERIFY",
        "Settable": [
            "value"
@@ -125,6 +125,14 @@
        "Settable": [
            "value"
        ]
+     },
+     {
+       "Description": "Docker API Version to access Docker Remote API",
+       "Name": "DOCKER_API_VERSION",
+       "Settable": [
+           "value"
+       ],
+       "Value" : "1.22"
      }
    ],
    "Mounts":[
