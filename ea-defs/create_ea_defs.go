@@ -1,12 +1,13 @@
 package main
 
 import (
+	"github.com/infobloxopen/docker-infoblox/common"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	"log"
 )
 
 func main() {
-	config, err := LoadConfig()
+	config, err := common.LoadConfig()
 	if config == nil || err != nil {
 		log.Fatal(err)
 	}
