@@ -13,55 +13,43 @@ Refer to [CONFIG.md](docs/CONFIG.md) on how to configure vNIOS.
 
 ## Configuration
 
-Infoblox IPAM plugin can be configured either by passing arguments to the plugin while installing or adding parmeters in the configuration file and passing that file name as an argument.
-
-### 1) Plugin configuration using command line arguments
-Configuration parameters can be passed to the plugin while installing the plugin.
-
-The parameters which can be passed are:
-
-| Parameter | Description |
-| ------ | ----------- |
-| CONF_FILE_NAME | Configuration file name in /etc/infoblox directory
-| DEBUG | Sets log level to debug
-| DOCKER_API_VERSION | Docker API version to use (Default: 1.22)
-| GRID_HOST | IP of Infoblox Grid Host
-| WAPI_PORT | Infoblox WAPI Port
-| WAPI_USERNAME | Infoblox WAPI Username
-| WAPI_PASSWORD | Infoblox WAPI Password
-| WAPI_VERSION | Infoblox WAPI Version
-| SSL_VERIFY  | Specifies whether to verify server certificate or not
-| HTTP_REQUEST_TIMEOUT | Infoblox WAPI request timeout in seconds
-| HTTP_POOL_CONNECTIONS | Infoblox WAPI request connection pool size
-| GLOBAL_VIEW  | Infoblox Network View for Global Address Space
-| GLOBAL_NETWORK_CONTAINER | Subnets will be allocated from this container when --subnet <br>is not specified during network creation
-| GLOBAL_PREFIX_LENGTH | The default CIDR prefix length when allocating a global subnet
-| LOCAL_VIEW | Infoblox Network View for Local Address Space
-| LOCAL_NETWORK_CONTAINER | Subnets will be allocated from this container when --subnet <br>is not specified during network creation
-| LOCAL_PREFIX_LENGTH | The default CIDR prefix length when allocating a local subnet
-
-### 2) Plugin configuration using configuration file
-Create a file `docker-infoblox.conf` (configurable via CONF_FILE_NAME parameter) in **`/etc/infoblox/`** directory and add the configuation options in the file. Pass this configuration file name as a parameter to plugin while installing (CONF_FILE_NAME=docker-infoblox.conf)
+Infoblox IPAM plugin can be configured in following ways:
+1. Adding parameters in a configuration file and setting `CONF_FILE_NAME` environment variable to the file name.
+2. Setting all the plugin environment variables while installing the plugin.
 
 The configuration options are:
 
-| Option | Type  | Description |
-| ------ | ----- | ----------- |
-| grid-host | String | IP of Infoblox Grid Host
-| wapi-port | String | Infoblox WAPI Port <br>(Default : 443)
-| wapi-username | String | Infoblox WAPI Username
-| wapi-password | String | Infoblox WAPI Password
-| wapi-version | String | Infoblox WAPI Version <br>(Default : "2.0")
-| ssl-verify  | String | Specifies whether (true/false) to verify server certificate or not. <br>If a file path is specified, it is assumed to be a certificate file <br>and will be used to verify server certificate.
-| http-request-timeout | Integer | Infoblox WAPI request timeout in seconds <br>(Default : 60)
-| http-pool-connections | Integer | Infoblox WAPI request connection pool size <br>(Default : 10)
-| global-view  | String | Infoblox Network View for Global Address Space <br>(Default : "default")
-| global-network-container | String | Subnets will be allocated from this container when --subnet <br>is not specified during network creation
-| global-prefix-length | Integer | The default CIDR prefix length when allocating a global subnet <br>(Default : 24)
-| local-view | String | Infoblox Network View for Local Address Space <br>(Default : "default")
-| local-network-container | String | Subnets will be allocated from this container when --subnet <br>is not specified during network creation
-| local-prefix-length | Integer | The default CIDR prefix length when allocating a local subnet <br>(Default : 24)
+| Environment Variable     | Configuration File Option | Type    | Description |
+| ------                   |      ------               | -----   | ----------- |
+| CONF_FILE_NAME           | -                         | -       | Configuration file name in /etc/infoblox directory
+| DEBUG                    | -                         | -       | Sets log level to debug
+| DOCKER_API_VERSION       | -                         | -       | Docker API version to use <br>(Default : 1.22)
+| GRID_HOST                | grid-host                 | String  | IP of Infoblox Grid Host
+| WAPI_PORT                | wapi-port                 | String  | Infoblox WAPI Port <br>(Default : "443")
+| WAPI_USERNAME            | wapi-username             | String  | Infoblox WAPI Username
+| WAPI_PASSWORD            | wapi-password             | String  | Infoblox WAPI Password
+| WAPI_VERSION             | wapi-version              | String  | Infoblox WAPI Version <br>(Default : "2.0")
+| SSL_VERIFY               | ssl-verify                | String  | Specifies whether (true/false) to verify server <br>certificate or not. If a file path is specified, it is <br>assumed to be a certificate file and will be used <br>to verify server certificate.
+| HTTP_REQUEST_TIMEOUT     | http-request-timeout      | Integer | Infoblox WAPI request timeout in seconds <br>(Default : 60)
+| HTTP_POOL_CONNECTIONS    | http-pool-connections     | Integer | Infoblox WAPI request connection pool size <br>(Default : 10)
+| GLOBAL_VIEW              | global-view               | String  | Infoblox Network View for Global Address Space <br>(Default : "default")
+| GLOBAL_NETWORK_CONTAINER | global-network-container  | String  | Subnets will be allocated from this container when <br>--subnet is not specified during network creation
+| GLOBAL_PREFIX_LENGTH     | global-prefix-length      | Integer | The default CIDR prefix length when allocating a <br>global subnet <br>(Default : 24)
+| LOCAL_VIEW               | local-view                | String  | Infoblox Network View for Local Address Space <br>(Default : "default")
+| LOCAL_NETWORK_CONTAINER  | local-network-container   | String  | Subnets will be allocated from this container when <br>--subnet is not specified during network creation
+| LOCAL_PREFIX_LENGTH      | local-prefix-length       | Integer | The default CIDR prefix length when allocating a <br>local subnet <br>(Default : 24)
 
+
+**If some option is passed in both the ways, then configuration passed as plugin environment variable overrides the configuration defined in the configuration file.**
+
+## Installation
+
+By default, the ipam-plugin assumes that the "Cloud Network Automation" licensed feature is activated in NIOS. Should this not be the case, refer to "Manual Configuration of Cloud Extensible Attributes" in CONFIG.md for additional configuration required.
+
+Plugin is installed by pulling the infoblox/ipam-plugin from the docker store and setting its environment variables.
+
+### 1) Installing and configuring the plugin with the configuration file
+Create a file `docker-infoblox.conf` (configurable via CONF_FILE_NAME parameter) in **`/etc/infoblox/`** directory and add the configuration options in the file.
 
 A sample plugin configuration file looks like this:
 ```
@@ -84,14 +72,8 @@ local-network-container="192.168.0.0/20,192.169.0.0/22"
 local-prefix-length=25
 ```
 
-**If some option is in passed both the ways, then configuration parameters passed as arguments overrides the configuration defined in the configuration file.**
+Set the CONF_FILE_NAME variable to this file name while installing the plugin.
 
-## Installation
-
-By default, the ipam-plugin assumes that the "Cloud Network Automation" licensed feature is activated in NIOS. Should this not be the case, refer to "Manual Configuration of Cloud Extensible Attributes" in CONFIG.md for additional configuration required.
-
-
-### Installing plugin from the Docker Store
 ```
 $ docker plugin install --alias infoblox infoblox/ipam-plugin:1.1.0 \
 CONF_FILE_NAME=docker-infoblox.conf
@@ -104,33 +86,21 @@ Do you grant the above permissions? [y/N]
 
 ```
 
-The plugin requests the following priviliges:
+The plugin requests the following privileges:
   * access to the host network
   * mounts /etc/infoblox directory on the host as a volume to  container to read its configuration file
   * mounts /var/run directory on the host as a volume to container to access docker socket file
 
-TO avoid the privileges request prompt pass the `--grant-all-permissions` option
+To avoid the privileges request prompt pass the `--grant-all-permissions` option
+
 ```
 $ docker plugin install --grant-all-permissions --alias infoblox \
 infoblox/ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf
 ```
 
-To override a configuration file option
-```
-$ docker plugin install --grant-all-permissions --alias infoblox \
-infoblox/ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf \
-LOCAL_NETWORK_CONTAINER=172.16.10.0/24
-```
-`LOCAL_NETWORK_CONTAINER` overides the `local-network-container` option in conf file.
+### 2) Installing and configuring the plugin by setting its environment variables
 
-Inoder to run the plugin in debug mode, pass `DEBUG` parameter
-
-```
-$ docker plugin install --grant-all-permissions --alias infoblox \
-infoblox/ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf DEBUG=true
-```
-
-Passing all the parameters from command line and not using the configuration file
+* Plugin can be configured without configuration file by setting all the plugin environment variables while installing the plugin.
 ```
 $ docker plugin install --grant-all-permissions --alias infoblox \
 infoblox/ipam-plugin:1.1.0 GRID_HOST=10.120.21.150 \
@@ -138,6 +108,21 @@ WAPI_USERNAME=admin WAPI_PASSWORD=infoblox GLOBAL_VIEW=global_view \
 GLOBAL_NETWORK_CONTAINER=172.18.0.0/16 LOCAL_VIEW=local_view \
 LOCAL_NETWORK_CONTAINER=192.168.0.0/20 LOCAL_PREFIX_LENGTH=25
 ```
+
+* To override a configuration file option with the plugin environment variable
+```
+$ docker plugin install --grant-all-permissions --alias infoblox \
+infoblox/ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf \
+LOCAL_NETWORK_CONTAINER=172.16.10.0/24
+```
+Here `LOCAL_NETWORK_CONTAINER` overrides the `local-network-container` option in conf file.
+
+* Inorder to set the plugin log level as debug, set the `DEBUG` variable
+```
+$ docker plugin install --grant-all-permissions --alias infoblox \
+infoblox/ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf DEBUG=true
+```
+
 
 ## Usage
 
@@ -197,12 +182,24 @@ To check the logs find the plugin id
 ```
 $ docker plugin inspect infoblox:latest -f '{{ .ID }}'
 
-7e42725527bf4b631894b7e7baa7501ee65eaafec50e0966426bf327288adf95
+980b5a3befebc1a64d6d788b4c1e78676ed3e2632e78b9b38a370a9e71d73ee3
 ```
 
 Search for this ID in the docker daemon logs (default is /var/log/syslog) to find the plugin logs.
 
+```
+$ grep 'plugin=980b5a3befebc1a64d6d788b4c1e78676ed3e2632e78b9b38a370a9e71d73ee3' /var/log/syslog
 
+Jun  8 16:08:40 ishant dockerd[23649]: time="2017-06-08T16:08:40+05:30" level=info msg="time=\"2017-06-08T10:38:40Z\" level=info msg=\"Loading IPAM Configuration from the file\" " plugin=980b5a3befebc1a64d6d788b4c1e78676ed3e2632e78b9b38a370a9e71d73ee3
+Jun  8 16:08:40 ishant dockerd[23649]: time="2017-06-08T16:08:40+05:30" level=info msg="time=\"2017-06-08T10:38:40Z\" level=info msg=\"Found Configuration file /etc/infoblox/docker-infoblox.conf" plugin=980b5a3befebc1a64d6d788b4c1e78676ed3e2632e78b9b38a370a9e71d73ee3
+Jun  8 16:08:40 ishant dockerd[23649]: time="2017-06-08T16:08:40+05:30" level=info msg="\" " plugin=980b5a3befebc1a64d6d788b4c1e78676ed3e2632e78b9b38a370a9e71d73ee3
+Jun  8 16:08:40 ishant dockerd[23649]: time="2017-06-08T16:08:40+05:30" level=info msg="time=\"2017-06-08T10:38:40Z\" level=info msg=\"Loading IPAM Configuration from the environment variables\" " plugin=980b5a3befebc1a64d6d788b4c1e78676ed3e2632e78b9b38a370a9e71d73ee3
+Jun  8 16:08:40 ishant dockerd[23649]: time="2017-06-08T16:08:40+05:30" level=info msg="time=\"2017-06-08T10:38:40Z\" level=info msg=\"Configuration successfully loaded" plugin=980b5a3befebc1a64d6d788b4c1e78676ed3e2632e78b9b38a370a9e71d73ee3
+Jun  8 16:08:40 ishant dockerd[23649]: time="2017-06-08T16:08:40+05:30" level=info msg="\" " plugin=980b5a3befebc1a64d6d788b4c1e78676ed3e2632e78b9b38a370a9e71d73ee3
+Jun  8 16:08:40 ishant dockerd[23649]: time="2017-06-08T16:08:40+05:30" level=info msg="time=\"2017-06-08T10:38:40Z\" level=info msg=\"Socket File: '/run/docker/plugins/infoblox.sock'\" " plugin=980b5a3befebc1a64d6d788b4c1e78676ed3e2632e78b9b38a370a9e71d73ee3
+Jun  8 16:08:40 ishant dockerd[23649]: time="2017-06-08T16:08:40+05:30" level=info msg="time=\"2017-06-08T10:38:40Z\" level=info msg=\"Docker id is 'DVZR:HNJZ:42OG:XTRO:YOHD:VDYA:EBKK:UDO7:ILEA:JF7R:KYGG:QCIO'" plugin=980b5a3befebc1a64d6d788b4c1e78676ed3e2632e78b9b38a370a9e71d73ee3
+
+```
 ## Build
 
 For dependencies and build instructions, refer to ```BUILD.md```.
