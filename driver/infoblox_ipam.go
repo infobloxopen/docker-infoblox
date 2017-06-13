@@ -3,10 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
-	ipamsapi "github.com/docker/libnetwork/ipams/remote/api"
+	"github.com/Sirupsen/logrus"
+	ipamApi "github.com/docker/go-plugins-helpers/ipam"
 	"github.com/docker/libnetwork/netlabel"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -36,23 +36,18 @@ type InfobloxDriver struct {
 	addressSpaceByView  map[string]*InfobloxAddressSpace
 }
 
-func (ibDrv *InfobloxDriver) PluginActivate(r interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"Implements": []interface{}{
-			"IpamDriver",
-		}}, nil
+func (ibDrv *InfobloxDriver) GetCapabilities() (*ipamApi.CapabilitiesResponse, error) {
+	logrus.Infof("GetCapabilities called")
+	return &ipamApi.CapabilitiesResponse{RequiresMACAddress: true}, nil
 }
 
-func (ibDrv *InfobloxDriver) GetCapabilities(r interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{"RequiresMACAddress": true}, nil
-}
-
-func (ibDrv *InfobloxDriver) GetDefaultAddressSpaces(r interface{}) (map[string]interface{}, error) {
+func (ibDrv *InfobloxDriver) GetDefaultAddressSpaces() (*ipamApi.AddressSpacesResponse, error) {
+	logrus.Infof("GetDefaultAddressSpaces called")
 	globalViewRef, localViewRef, err := ibDrv.objMgr.CreateDefaultNetviews(
 		ibDrv.addressSpaceByScope[GLOBAL].NetviewName,
 		ibDrv.addressSpaceByScope[LOCAL].NetviewName)
 
-	return map[string]interface{}{"GlobalDefaultAddressSpace": globalViewRef, "LocalDefaultAddressSpace": localViewRef}, err
+	return &ipamApi.AddressSpacesResponse{LocalDefaultAddressSpace: localViewRef, GlobalDefaultAddressSpace: globalViewRef}, err
 }
 
 func getPrefixLength(cidr string) (prefixLength string) {
@@ -60,53 +55,51 @@ func getPrefixLength(cidr string) (prefixLength string) {
 	return parts[1]
 }
 
-func (ibDrv *InfobloxDriver) RequestAddress(r interface{}) (map[string]interface{}, error) {
-	v := r.(*ipamsapi.RequestAddressRequest)
-	network := ibclient.BuildNetworkFromRef(v.PoolID)
+func (ibDrv *InfobloxDriver) RequestAddress(r *ipamApi.RequestAddressRequest) (*ipamApi.RequestAddressResponse, error) {
+	network := ibclient.BuildNetworkFromRef(r.PoolID)
 
-	macAddr := v.Options[netlabel.MacAddress]
+	macAddr := r.Options[netlabel.MacAddress]
 	if len(macAddr) == 0 {
 		macAddr = ibclient.MACADDR_ZERO
-		log.Printf("RequestAddressRequest contains empty MAC Address. '%s' will be used.\n", macAddr)
+		logrus.Infof("RequestAddressRequest contains empty MAC Address. '%s' will be used.\n", macAddr)
 	}
 
 	fixedAddr, _ := ibDrv.objMgr.GetFixedAddress(network.NetviewName, network.Cidr, "", macAddr)
 	if fixedAddr != nil {
-		if v.Address != "" {
-			if fixedAddr.IPAddress != v.Address {
+		if r.Address != "" {
+			if fixedAddr.IPAddress != r.Address {
 				msg := fmt.Sprintf("Requested MAC '%s' is already associated with a difference IP '%s' (requested: '%s')",
-					macAddr, fixedAddr.IPAddress, v.Address)
-				log.Printf("RequestAddress: %s", msg)
-				return nil, errors.New(msg)
+					macAddr, fixedAddr.IPAddress, r.Address)
+				logrus.Infof("RequestAddress: %s", msg)
+				return &ipamApi.RequestAddressResponse{}, errors.New(msg)
 			}
 		}
 	}
 
 	var err error
 	if fixedAddr == nil {
-		fixedAddr, err = ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, v.Address, macAddr, "")
+		fixedAddr, err = ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, r.Address, macAddr, "")
 	}
 
-	var res map[string]interface{}
+	var res ipamApi.RequestAddressResponse
 	if fixedAddr == nil || err != nil {
-		res = map[string]interface{}{}
+		res = ipamApi.RequestAddressResponse{}
 	} else {
-		res = map[string]interface{}{"Address": fmt.Sprintf("%s/%s", fixedAddr.IPAddress, getPrefixLength(network.Cidr))}
+		res = ipamApi.RequestAddressResponse{Address: fmt.Sprintf("%s/%s", fixedAddr.IPAddress, getPrefixLength(network.Cidr))}
 	}
 
-	return res, err
+	return &res, err
 }
 
-func (ibDrv *InfobloxDriver) ReleaseAddress(r interface{}) (map[string]interface{}, error) {
-	v := r.(*ipamsapi.ReleaseAddressRequest)
-	log.Printf("Releasing Address '%s' from Pool '%s'\n", v.Address, v.PoolID)
-	network := ibclient.BuildNetworkFromRef(v.PoolID)
-	ref, _ := ibDrv.objMgr.ReleaseIP(network.NetviewName, network.Cidr, v.Address, "")
+func (ibDrv *InfobloxDriver) ReleaseAddress(r *ipamApi.ReleaseAddressRequest) error {
+	logrus.Infof("Releasing Address '%s' from Pool '%s'\n", r.Address, r.PoolID)
+	network := ibclient.BuildNetworkFromRef(r.PoolID)
+	ref, _ := ibDrv.objMgr.ReleaseIP(network.NetviewName, network.Cidr, r.Address, "")
 	if ref == "" {
-		log.Printf("***** IP Cannot be deleted '%s'! *******\n", v.Address)
+		logrus.Warnf("IP Cannot be deleted '%s'!\n", r.Address)
 	}
 
-	return map[string]interface{}{}, nil
+	return nil
 }
 
 func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string, networkName string) (*ibclient.Network, error) {
@@ -117,7 +110,7 @@ func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string,
 	if network != nil {
 		if n, ok := network.Ea["Network Name"]; !ok || n != networkName {
 			msg := fmt.Sprintf("Network (%s) already in use", network.Cidr)
-			log.Printf("requestSpecificNetwork: %s", msg)
+			logrus.Debugf("requestSpecificNetwork: %s", msg)
 			return nil, errors.New(msg)
 		}
 	} else {
@@ -128,7 +121,7 @@ func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string,
 		if networkByName != nil {
 			if networkByName.Cidr != pool {
 				msg := fmt.Sprintf("Network name (%s) has different CIDR (%s)", networkName, networkByName.Cidr)
-				log.Printf("requestSpecificNetwork: %s", msg)
+				logrus.Debugf("requestSpecificNetwork: %s", msg)
 				return nil, errors.New(msg)
 			}
 		}
@@ -136,7 +129,7 @@ func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string,
 
 	if network == nil {
 		network, err = ibDrv.objMgr.CreateNetwork(netview, pool, networkName)
-		log.Printf("requestSpecificNetwork: CreateNetwork returns '%s', err='%s'", *network, err)
+		logrus.Debugf("requestSpecificNetwork: CreateNetwork returns '%s', err='%s'", *network, err)
 	}
 
 	return network, err
@@ -173,7 +166,7 @@ func (ibDrv *InfobloxDriver) allocateNetworkHelper(addrSpace *InfobloxAddressSpa
 	}
 	container := nextAvailableContainer(addrSpace)
 	for container != nil {
-		log.Printf("Allocating network from Container:'%s'", container.NetworkContainer)
+		logrus.Infof("Allocating network from Container:'%s'", container.NetworkContainer)
 		if container.ContainerObj == nil {
 			var err error
 			container.ContainerObj, err = ibDrv.createNetworkContainer(addrSpace.NetviewName, container.NetworkContainer)
@@ -207,21 +200,20 @@ func (ibDrv *InfobloxDriver) allocateNetwork(netview string, prefixLen uint, net
 	return
 }
 
-func (ibDrv *InfobloxDriver) RequestPool(r interface{}) (res map[string]interface{}, err error) {
-	v := r.(*ipamsapi.RequestPoolRequest)
-	log.Printf("RequestPoolRequest is '%v'\n", v)
+func (ibDrv *InfobloxDriver) RequestPool(r *ipamApi.RequestPoolRequest) (res *ipamApi.RequestPoolResponse, err error) {
+	logrus.Debugf("RequestPoolRequest is '%v'\n", r)
 
-	netviewName := ibclient.BuildNetworkViewFromRef(v.AddressSpace).Name
+	netviewName := ibclient.BuildNetworkViewFromRef(r.AddressSpace).Name
 
 	var network *ibclient.Network
 	var networkName string
 
-	if opt, ok := v.Options["network-name"]; ok {
+	if opt, ok := r.Options["network-name"]; ok {
 		networkName = opt
 	}
 
-	if len(v.Pool) > 0 {
-		network, err = ibDrv.requestSpecificNetwork(netviewName, v.Pool, networkName)
+	if len(r.Pool) > 0 {
+		network, err = ibDrv.requestSpecificNetwork(netviewName, r.Pool, networkName)
 	} else {
 		var prefixLen uint
 		var networkByName *ibclient.Network
@@ -232,10 +224,10 @@ func (ibDrv *InfobloxDriver) RequestPool(r interface{}) (res map[string]interfac
 			}
 		}
 		if networkByName != nil {
-			log.Printf("RequestNetwork: GetNetwork by name returns '%s'", *networkByName)
+			logrus.Debugf("RequestNetwork: GetNetwork by name returns '%s'", *networkByName)
 			network = networkByName
 		} else {
-			if opt, ok := v.Options["prefix-length"]; ok {
+			if opt, ok := r.Options["prefix-length"]; ok {
 				if v, err := strconv.ParseUint(opt, 10, 8); err == nil {
 					prefixLen = uint(v)
 				}
@@ -245,34 +237,35 @@ func (ibDrv *InfobloxDriver) RequestPool(r interface{}) (res map[string]interfac
 	}
 
 	if network != nil {
-		res = map[string]interface{}{"PoolID": network.Ref, "Pool": network.Cidr}
+		logrus.Infof("Network Allocated is %s \n", network.Cidr)
+		res = &ipamApi.RequestPoolResponse{PoolID: network.Ref, Pool: network.Cidr}
 	}
 	return
 }
 
-func (ibDrv *InfobloxDriver) ReleasePool(r interface{}) (map[string]interface{}, error) {
-	v := r.(*ipamsapi.ReleasePoolRequest)
+func (ibDrv *InfobloxDriver) ReleasePool(r *ipamApi.ReleasePoolRequest) error {
 
-	if len(v.PoolID) > 0 {
-		networkFromRef := ibclient.BuildNetworkFromRef(v.PoolID)
+	logrus.Debugf("Releasing Network %s\n", r.PoolID)
+	if len(r.PoolID) > 0 {
+		networkFromRef := ibclient.BuildNetworkFromRef(r.PoolID)
 		network, err := ibDrv.objMgr.GetNetwork(networkFromRef.NetviewName, networkFromRef.Cidr, nil)
 		if err != nil {
-			return map[string]interface{}{}, err
+			return err
 		}
 
 		// if network has a valid looking "Network Name" EA, assume that
 		// it is shared with others - hence not deleted.
 		if n, ok := network.Ea["Network Name"]; ok && n != "" {
-			return map[string]interface{}{}, nil
+			return nil
 		}
 
-		ref, _ := ibDrv.objMgr.DeleteNetwork(v.PoolID, networkFromRef.NetviewName)
+		ref, _ := ibDrv.objMgr.DeleteNetwork(r.PoolID, networkFromRef.NetviewName)
 		if len(ref) > 0 {
-			log.Printf("Network %s successfully deleted from Infoblox\n", v.PoolID)
+			logrus.Infof("Network %s successfully deleted from Infoblox\n", r.PoolID)
 		}
 	}
 
-	return map[string]interface{}{}, nil
+	return nil
 }
 
 func makeContainers(containerList string) []Container {

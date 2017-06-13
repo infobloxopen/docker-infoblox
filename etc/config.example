@@ -1,0 +1,17 @@
+[grid_config]
+grid_host="10.120.21.150"
+wapi_port="443"
+wapi_username="admin"
+wapi_password="infoblox"
+wapi_version="2.0"
+ssl_verify="false"
+http_request_timeout=60
+http_pool_connections=10
+
+[ipam_config]
+global_view="global"
+global_network_container="172.18.0.0/24"
+global_prefix_length=25
+local_view="local"
+local_network_container="192.168.0.0/24"
+local_prefix_length=25
