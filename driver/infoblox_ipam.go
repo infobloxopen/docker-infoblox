@@ -6,6 +6,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	ipamApi "github.com/docker/go-plugins-helpers/ipam"
 	"github.com/docker/libnetwork/netlabel"
+	"github.com/infobloxopen/docker-infoblox/common"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	"math/rand"
 	"strconv"
@@ -48,6 +49,20 @@ func (ibDrv *InfobloxDriver) GetDefaultAddressSpaces() (*ipamApi.AddressSpacesRe
 	globalViewRef, localViewRef, err := ibDrv.objMgr.CreateDefaultNetviews(
 		ibDrv.addressSpaceByScope[GLOBAL].NetviewName,
 		ibDrv.addressSpaceByScope[LOCAL].NetviewName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// update the network view with the EA with the Lock EA
+	lockEA := ibclient.EA{common.EA_DOCKER_PLUGIN_LOCK: "Available"}
+
+	err = ibDrv.objMgr.UpdateNetworkView(globalViewRef, lockEA, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ibDrv.objMgr.UpdateNetworkView(localViewRef, lockEA, nil)
 
 	return &ipamApi.AddressSpacesResponse{LocalDefaultAddressSpace: localViewRef, GlobalDefaultAddressSpace: globalViewRef}, err
 }
@@ -202,9 +217,7 @@ func (ibDrv *InfobloxDriver) getSharedNetwork(netViewName string, pool string, n
 
 func (ibDrv *InfobloxDriver) createSharedNetwork(netViewName string, pool string, networkName string, prefixLen uint) (*ibclient.Network, error) {
 
-	// Network View + Network Name will always be unique for a shared network
-	lockName := netViewName + networkName
-	l := GridLocker{name: lockName, objMgr: ibDrv.objMgr}
+	l := NVLocker{name: netViewName, objMgr: ibDrv.objMgr}
 	retryCount := 0
 	for {
 		// Get lock to create the network
@@ -223,8 +236,8 @@ func (ibDrv *InfobloxDriver) createSharedNetwork(netViewName string, pool string
 			continue
 		} else {
 			// Got the lock. Create the network.
-			logrus.Debugf("Got the lock %s. Creating the network %s\n", lockName, networkName)
-			defer l.UnLock()
+			logrus.Debugf("Got the lock. Creating the network %s\n", networkName)
+			defer l.UnLock(false)
 			break
 		}
 	}

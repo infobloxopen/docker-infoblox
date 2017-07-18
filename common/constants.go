@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	ibclient "github.com/infobloxopen/infoblox-go-client"
@@ -42,26 +42,28 @@ const (
 	EA_CLOUD_ADAPTER_ID = "Cloud Adapter ID"
 	EA_IS_CLOUD_MEMBER  = "Is Cloud Member"
 
-	EA_SUBNET_ID             = "Subnet ID"
-	EA_SUBNET_NAME           = "Subnet Name"
-	EA_NETWORK_ID            = "Network ID"
-	EA_NETWORK_NAME          = "Network Name"
-	EA_NETWORK_ENCAP         = "Network Encap"
-	EA_SEGMENTATION_ID       = "Segmentation ID"
-	EA_PHYSICAL_NETWORK_NAME = "Physical Network Name"
-	EA_PORT_ID               = "Port ID"
-	EA_PORT_DEVICE_OWNER     = "Port Attached Device - Device Owner"
-	EA_PORT_DEVICE_ID        = "Port Attached Device - Device ID"
-	EA_VM_ID                 = "VM ID"
-	EA_VM_NAME               = "VM Name"
-	EA_IP_TYPE               = "IP Type"
-	EA_TENANT_ID             = "Tenant ID"
-	EA_TENANT_NAME           = "Tenant Name"
-	EA_ACCOUNT               = "Account"
-	EA_CLOUD_API_OWNED       = "Cloud API Owned"
-	EA_CMP_TYPE              = "CMP Type"
-	EA_IS_EXTERNAL           = "Is External"
-	EA_IS_SHARED             = "Is Shared"
+	EA_SUBNET_ID               = "Subnet ID"
+	EA_SUBNET_NAME             = "Subnet Name"
+	EA_NETWORK_ID              = "Network ID"
+	EA_NETWORK_NAME            = "Network Name"
+	EA_NETWORK_ENCAP           = "Network Encap"
+	EA_SEGMENTATION_ID         = "Segmentation ID"
+	EA_PHYSICAL_NETWORK_NAME   = "Physical Network Name"
+	EA_PORT_ID                 = "Port ID"
+	EA_PORT_DEVICE_OWNER       = "Port Attached Device - Device Owner"
+	EA_PORT_DEVICE_ID          = "Port Attached Device - Device ID"
+	EA_VM_ID                   = "VM ID"
+	EA_VM_NAME                 = "VM Name"
+	EA_IP_TYPE                 = "IP Type"
+	EA_TENANT_ID               = "Tenant ID"
+	EA_TENANT_NAME             = "Tenant Name"
+	EA_ACCOUNT                 = "Account"
+	EA_CLOUD_API_OWNED         = "Cloud API Owned"
+	EA_CMP_TYPE                = "CMP Type"
+	EA_IS_EXTERNAL             = "Is External"
+	EA_IS_SHARED               = "Is Shared"
+	EA_DOCKER_PLUGIN_LOCK      = "Docker-Plugin-Lock"
+	EA_DOCKER_PLUGIN_LOCK_TIME = "Docker-Plugin-Lock-Time"
 )
 
 const (
@@ -80,14 +82,8 @@ var RequiredEADefs = []ibclient.EADefinition{
 		Comment: "Docker Engine ID"},
 	{Name: EA_VM_ID, Type: EA_TYPE_STRING, Flags: "C",
 		Comment: "Containter ID in Docker"},
-}
-
-func GetRequiredEADefs() []ibclient.EADefinition {
-	ea_defs := RequiredEADefs
-	res := make([]ibclient.EADefinition, len(ea_defs))
-	for i, d := range ea_defs {
-		res[i] = *ibclient.NewEADefinition(d)
-	}
-
-	return res
+	{Name: EA_DOCKER_PLUGIN_LOCK, Type: EA_TYPE_STRING, Flags: "C",
+		Comment: "Distributed Lock for Docker Engines"},
+	{Name: EA_DOCKER_PLUGIN_LOCK_TIME, Type: EA_TYPE_INTEGER, Flags: "C",
+		Comment: "UNIX Timestamp at which Lock for Docker Engines was acquired"},
 }

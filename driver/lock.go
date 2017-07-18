@@ -2,43 +2,193 @@ package main
 
 import (
 	"github.com/Sirupsen/logrus"
+	"github.com/infobloxopen/docker-infoblox/common"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	"time"
 )
 
-type GridLocker struct {
-	timeout time.Time
-	objMgr  *ibclient.ObjectManager
-	name    string
-	ref     string
+const (
+	timeout int32 = 120 // in seconds
+)
+
+type NVLocker struct {
+	name   string
+	objMgr *ibclient.ObjectManager
 }
 
-func (l *GridLocker) Lock() bool {
-	// create EA definition with name as in lockName variable
-	// If EA is created successfully, then lock is acquired
-	// If response has an error, then lock is held by some other resource
+func (l *NVLocker) createLockRequest() []*ibclient.RequestBody {
 
-	logrus.Debugf("Creating lock %s\n", l.name)
+	req := []*ibclient.RequestBody{
+		&ibclient.RequestBody{
+			Method: "GET",
+			Object: "networkview",
+			Data: map[string]interface{}{
+				"name": l.name,
+				"*" + common.EA_DOCKER_PLUGIN_LOCK: "Available",
+			},
+			Args: map[string]string{
+				"_return_fields": "extattrs",
+			},
+			AssignState: map[string]string{
+				"NET_VIEW_REF": "_ref",
+			},
+			Discard: true,
+		},
+		&ibclient.RequestBody{
+			Method: "PUT",
+			Object: "##STATE:NET_VIEW_REF:##",
+			Data: map[string]interface{}{
+				"extattrs+": map[string]interface{}{
+					common.EA_DOCKER_PLUGIN_LOCK: map[string]string{
+						"value": l.objMgr.TenantID,
+					},
+					common.EA_DOCKER_PLUGIN_LOCK_TIME: map[string]int32{
+						"value": int32(time.Now().Unix()),
+					},
+				},
+			},
+			EnableSubstitution: true,
+			Discard:            true,
+		},
+		&ibclient.RequestBody{
+			Method: "GET",
+			Object: "##STATE:NET_VIEW_REF:##",
+			Args: map[string]string{
+				"_return_fields": "extattrs",
+			},
+			AssignState: map[string]string{
+				"DOCKER-ID": "*" + common.EA_DOCKER_PLUGIN_LOCK,
+			},
+			EnableSubstitution: true,
+			Discard:            true,
+		},
+		&ibclient.RequestBody{
+			Method: "STATE:DISPLAY",
+		},
+	}
 
-	eaDef := ibclient.EADefinition{Name: l.name, Type: "STRING", Flags: "C",
-		Comment:      "Docker Resource Lock",
-		DefaultValue: string(time.Now().Unix())}
+	return req
+}
 
-	// TODO: implement timeout so that lock is never held infinitely for a resource
-	// This can happen when a system which acquired lock crashes without releasing the lock
+func (l *NVLocker) createUnlockRequest(force bool) []*ibclient.RequestBody {
 
-	eaDefRef, err := l.objMgr.CreateEADefinition(eaDef)
+	getData := map[string]interface{}{"name": l.name}
+	if !force {
+		getData["*"+common.EA_DOCKER_PLUGIN_LOCK] = l.objMgr.TenantID
+	}
+
+	req := []*ibclient.RequestBody{
+		&ibclient.RequestBody{
+			Method: "GET",
+			Object: "networkview",
+			Data:   getData,
+			Args: map[string]string{
+				"_return_fields": "extattrs",
+			},
+			AssignState: map[string]string{
+				"NET_VIEW_REF": "_ref",
+			},
+			Discard: true,
+		},
+		&ibclient.RequestBody{
+			Method: "PUT",
+			Object: "##STATE:NET_VIEW_REF:##",
+			Data: map[string]interface{}{
+				"extattrs+": map[string]interface{}{
+					common.EA_DOCKER_PLUGIN_LOCK: map[string]string{
+						"value": "Available",
+					},
+				},
+			},
+			EnableSubstitution: true,
+			Discard:            true,
+		},
+		&ibclient.RequestBody{
+			Method: "PUT",
+			Object: "##STATE:NET_VIEW_REF:##",
+			Data: map[string]interface{}{
+				"extattrs-": map[string]interface{}{
+					common.EA_DOCKER_PLUGIN_LOCK_TIME: map[string]interface{}{},
+				},
+			},
+			EnableSubstitution: true,
+			Discard:            true,
+		},
+		&ibclient.RequestBody{
+			Method: "GET",
+			Object: "##STATE:NET_VIEW_REF:##",
+			Args: map[string]string{
+				"_return_fields": "extattrs",
+			},
+			AssignState: map[string]string{
+				"DOCKER-ID": "*" + common.EA_DOCKER_PLUGIN_LOCK,
+			},
+			EnableSubstitution: true,
+			Discard:            true,
+		},
+		&ibclient.RequestBody{
+			Method: "STATE:DISPLAY",
+		},
+	}
+
+	return req
+}
+
+func (l *NVLocker) Lock() bool {
+
+	logrus.Debugf("Creating lock on network niew%s\n", l.name)
+
+	req := l.createLockRequest()
+	res, err := l.objMgr.CreateMultiObjectRequest(req)
 
 	if err != nil {
-		// Already locked
-		logrus.Debugf("Failed to create lock. %s\n", err)
+		logrus.Debugf("Failed to create lock on network view %s: %s", l.name, err)
+
+		//Check for timeout
+		nw, err := l.objMgr.GetNetworkView(l.name)
+		if err != nil {
+			logrus.Debugf("Failed to get the network view object for %s : %s", l.name, err)
+			return false
+		}
+
+		if t, ok := nw.Ea[common.EA_DOCKER_PLUGIN_LOCK_TIME]; ok {
+			if int32(time.Now().Unix())-int32(t.(int)) > timeout {
+				logrus.Debugf("Lock is timed out. Forcefully acquiring it.")
+				//remove the lock forcefully and acquire it
+				l.UnLock(true)
+				// try to get lock again
+				return l.Lock()
+			}
+		}
 		return false
 	}
-	l.ref = eaDefRef.Ref
-	return true
+
+	dockerID := res[0]["DOCKER-ID"]
+	if dockerID == l.objMgr.TenantID {
+		logrus.Debugln("Got the lock !!!")
+		return true
+	}
+
+	return false
 }
 
-func (l *GridLocker) UnLock() error {
-	_, err := l.objMgr.DeleteEADefinition(l.ref)
-	return err
+func (l *NVLocker) UnLock(force bool) bool {
+	// To unlock set the Docker-Plugin-Lock EA of network view to Available and
+	// remove the Docker-Plugin-Lock-Time EA
+
+	req := l.createUnlockRequest(force)
+	res, err := l.objMgr.CreateMultiObjectRequest(req)
+
+	if err != nil {
+		logrus.Debugf("Failed to release lock on network view %s: %s", l.name, err)
+		return false
+	}
+
+	dockerID := res[0]["DOCKER-ID"]
+	if dockerID == "Available" {
+		logrus.Debugln("Removed the lock!")
+		return true
+	}
+
+	return false
 }
