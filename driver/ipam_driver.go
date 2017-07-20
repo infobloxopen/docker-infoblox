@@ -106,5 +106,4 @@ func main() {
 
 	h := ipamPluginSdk.NewHandler(ipamDrv)
 	h.ServeUnix(socketAddress, 0)
-
 }

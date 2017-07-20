@@ -8,10 +8,8 @@ import (
 	"github.com/docker/libnetwork/netlabel"
 	"github.com/infobloxopen/docker-infoblox/common"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
-	"math/rand"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type Container struct {
@@ -53,16 +51,6 @@ func (ibDrv *InfobloxDriver) GetDefaultAddressSpaces() (*ipamApi.AddressSpacesRe
 	if err != nil {
 		return nil, err
 	}
-
-	// update the network view with the EA with the Lock EA
-	lockEA := ibclient.EA{common.EA_DOCKER_PLUGIN_LOCK: "Available"}
-
-	err = ibDrv.objMgr.UpdateNetworkView(globalViewRef, lockEA, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	err = ibDrv.objMgr.UpdateNetworkView(localViewRef, lockEA, nil)
 
 	return &ipamApi.AddressSpacesResponse{LocalDefaultAddressSpace: localViewRef, GlobalDefaultAddressSpace: globalViewRef}, err
 }
@@ -155,7 +143,6 @@ func (ibDrv *InfobloxDriver) allocateNetworkHelper(addrSpace *InfobloxAddressSpa
 	for container != nil {
 		logrus.Infof("Allocating network from Container:'%s'\n", container.NetworkContainer)
 		if container.ContainerObj == nil {
-			var err error
 			container.ContainerObj, err = ibDrv.createNetworkContainer(addrSpace.NetviewName, container.NetworkContainer)
 			if err != nil {
 				return nil, err
@@ -217,31 +204,14 @@ func (ibDrv *InfobloxDriver) getSharedNetwork(netViewName string, pool string, n
 
 func (ibDrv *InfobloxDriver) createSharedNetwork(netViewName string, pool string, networkName string, prefixLen uint) (*ibclient.Network, error) {
 
-	l := NVLocker{name: netViewName, objMgr: ibDrv.objMgr}
-	retryCount := 0
-	for {
-		// Get lock to create the network
-		lock := l.Lock()
-		if lock == false {
-			// resource is held by other plugin instance. Wait for some time and
-			// retry it again
-			if retryCount >= 10 {
-				return nil, fmt.Errorf("Failed to create network %s. Cannot get the lock.", networkName)
-			}
+	l, err := ibclient.GetNVLock(netViewName, ibDrv.objMgr, common.EA_DOCKER_PLUGIN_LOCK, common.EA_DOCKER_PLUGIN_LOCK_TIME)
+	defer l.UnLock(false)
 
-			retryCount++
-			logrus.Debugf("Failed to get the lock. Retry count %d out of 10.\n", retryCount)
-			// sleep for random time (between 1 - 5 seconds) to reduce collisions
-			time.Sleep(time.Duration(rand.Intn(4)+1) * time.Second)
-			continue
-		} else {
-			// Got the lock. Create the network.
-			logrus.Debugf("Got the lock. Creating the network %s\n", networkName)
-			defer l.UnLock(false)
-			break
-		}
+	if err != nil{
+		return nil, fmt.Errorf("Failed to create network %s. Cannot get the lock.", networkName)
 	}
 
+	logrus.Infof("Got the Lock. Creating shared network %s", networkName)
 	// get the network if it exists
 	networkByName, err := ibDrv.getSharedNetwork(netViewName, pool, networkName)
 
