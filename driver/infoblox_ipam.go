@@ -204,13 +204,15 @@ func (ibDrv *InfobloxDriver) getSharedNetwork(netViewName string, pool string, n
 
 func (ibDrv *InfobloxDriver) createSharedNetwork(netViewName string, pool string, networkName string, prefixLen uint) (*ibclient.Network, error) {
 
-	l, err := ibclient.GetNVLock(netViewName, ibDrv.objMgr, common.EA_DOCKER_PLUGIN_LOCK, common.EA_DOCKER_PLUGIN_LOCK_TIME)
-	defer l.UnLock(false)
+	l := &ibclient.NetworkViewLock{Name: netViewName, ObjMgr: ibDrv.objMgr, LockEA: common.EA_DOCKER_PLUGIN_LOCK,
+		LockTimeoutEA: common.EA_DOCKER_PLUGIN_LOCK_TIME}
+	err := l.Lock()
 
-	if err != nil{
-		return nil, fmt.Errorf("Failed to create network %s. Cannot get the lock.", networkName)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create network %s: %s", networkName, err)
 	}
 
+	defer l.UnLock(false)
 	logrus.Infof("Got the Lock. Creating shared network %s", networkName)
 	// get the network if it exists
 	networkByName, err := ibDrv.getSharedNetwork(netViewName, pool, networkName)
