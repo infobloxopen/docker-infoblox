@@ -6,6 +6,16 @@ import (
 	"log"
 )
 
+func GetRequiredEADefs() []ibclient.EADefinition {
+	ea_defs := common.RequiredEADefs
+	res := make([]ibclient.EADefinition, len(ea_defs))
+	for i, d := range ea_defs {
+		res[i] = *ibclient.NewEADefinition(d)
+	}
+
+	return res
+}
+
 func main() {
 	config, err := common.LoadConfig()
 	if config == nil || err != nil {
