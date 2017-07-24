@@ -6,6 +6,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	ipamApi "github.com/docker/go-plugins-helpers/ipam"
 	"github.com/docker/libnetwork/netlabel"
+	"github.com/infobloxopen/docker-infoblox/common"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	"strconv"
 	"strings"
@@ -37,15 +38,19 @@ type InfobloxDriver struct {
 }
 
 func (ibDrv *InfobloxDriver) GetCapabilities() (*ipamApi.CapabilitiesResponse, error) {
-	logrus.Infof("GetCapabilities called")
+	logrus.Infof("GetCapabilities called\n")
 	return &ipamApi.CapabilitiesResponse{RequiresMACAddress: true}, nil
 }
 
 func (ibDrv *InfobloxDriver) GetDefaultAddressSpaces() (*ipamApi.AddressSpacesResponse, error) {
-	logrus.Infof("GetDefaultAddressSpaces called")
+	logrus.Infof("GetDefaultAddressSpaces called\n")
 	globalViewRef, localViewRef, err := ibDrv.objMgr.CreateDefaultNetviews(
 		ibDrv.addressSpaceByScope[GLOBAL].NetviewName,
 		ibDrv.addressSpaceByScope[LOCAL].NetviewName)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return &ipamApi.AddressSpacesResponse{LocalDefaultAddressSpace: localViewRef, GlobalDefaultAddressSpace: globalViewRef}, err
 }
@@ -56,42 +61,45 @@ func getPrefixLength(cidr string) (prefixLength string) {
 }
 
 func (ibDrv *InfobloxDriver) RequestAddress(r *ipamApi.RequestAddressRequest) (*ipamApi.RequestAddressResponse, error) {
+	logrus.Debugf("RequestAddress Called : %+v\n", r)
+
 	network := ibclient.BuildNetworkFromRef(r.PoolID)
-
 	macAddr := r.Options[netlabel.MacAddress]
-	if len(macAddr) == 0 {
-		macAddr = ibclient.MACADDR_ZERO
-		logrus.Infof("RequestAddressRequest contains empty MAC Address. '%s' will be used.\n", macAddr)
-	}
+	var fixedAddr *ibclient.FixedAddress
+	var err error
+	// TODO: Do not create multiple gateways for shared networks
 
-	fixedAddr, _ := ibDrv.objMgr.GetFixedAddress(network.NetviewName, network.Cidr, "", macAddr)
-	if fixedAddr != nil {
-		if r.Address != "" {
-			if fixedAddr.IPAddress != r.Address {
-				msg := fmt.Sprintf("Requested MAC '%s' is already associated with a difference IP '%s' (requested: '%s')",
-					macAddr, fixedAddr.IPAddress, r.Address)
-				logrus.Infof("RequestAddress: %s", msg)
-				return &ipamApi.RequestAddressResponse{}, errors.New(msg)
-			}
+	// Gateway request does not have a MAC address in it. If RequestAddressType is Gateway
+	// then allocate IP with MAC 00:00:00:00:00:00
+	// If RequestAddressType is not Gateway and MAC is empty then its overlay network
+	// request for the Gateway.
+	if rType, ok := r.Options["RequestAddressType"]; macAddr == "" || (ok && rType == netlabel.Gateway) {
+		logrus.Debugln("Request for Gateway IP")
+
+		if len(macAddr) == 0 {
+			macAddr = ibclient.MACADDR_ZERO
+			logrus.Infof("RequestAddressRequest contains empty MAC Address. '%s' will be used.\n", macAddr)
+		}
+		fixedAddr, err = ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, r.Address, macAddr, "")
+		if err != nil {
+			msg := fmt.Sprintf("Failed to allocate Gateway IP for network %s : %s", network.Cidr, err)
+			return &ipamApi.RequestAddressResponse{}, errors.New(msg)
+		}
+	} else {
+		// This request is for the container
+		fixedAddr, err = ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, r.Address, macAddr, "")
+		if err != nil {
+			msg := fmt.Sprintf("Failed to allocate IP from pool %s for container with MAC %s : %s", network.Cidr, macAddr, err)
+			return &ipamApi.RequestAddressResponse{}, errors.New(msg)
 		}
 	}
-
-	var err error
-	if fixedAddr == nil {
-		fixedAddr, err = ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, r.Address, macAddr, "")
-	}
-
-	var res ipamApi.RequestAddressResponse
-	if fixedAddr == nil || err != nil {
-		res = ipamApi.RequestAddressResponse{}
-	} else {
-		res = ipamApi.RequestAddressResponse{Address: fmt.Sprintf("%s/%s", fixedAddr.IPAddress, getPrefixLength(network.Cidr))}
-	}
-
-	return &res, err
+	logrus.Debugf("Allocated IP %s\n", fixedAddr.IPAddress)
+	res := ipamApi.RequestAddressResponse{Address: fmt.Sprintf("%s/%s", fixedAddr.IPAddress, getPrefixLength(network.Cidr))}
+	return &res, nil
 }
 
 func (ibDrv *InfobloxDriver) ReleaseAddress(r *ipamApi.ReleaseAddressRequest) error {
+	logrus.Debugf("ReleaseAddress Called : %+v\n", r)
 	logrus.Infof("Releasing Address '%s' from Pool '%s'\n", r.Address, r.PoolID)
 	network := ibclient.BuildNetworkFromRef(r.PoolID)
 	ref, _ := ibDrv.objMgr.ReleaseIP(network.NetviewName, network.Cidr, r.Address, "")
@@ -100,39 +108,6 @@ func (ibDrv *InfobloxDriver) ReleaseAddress(r *ipamApi.ReleaseAddressRequest) er
 	}
 
 	return nil
-}
-
-func (ibDrv *InfobloxDriver) requestSpecificNetwork(netview string, pool string, networkName string) (*ibclient.Network, error) {
-	network, err := ibDrv.objMgr.GetNetwork(netview, pool, nil)
-	if err != nil {
-		return nil, err
-	}
-	if network != nil {
-		if n, ok := network.Ea["Network Name"]; !ok || n != networkName {
-			msg := fmt.Sprintf("Network (%s) already in use", network.Cidr)
-			logrus.Debugf("requestSpecificNetwork: %s", msg)
-			return nil, errors.New(msg)
-		}
-	} else {
-		networkByName, err := ibDrv.objMgr.GetNetwork(netview, "", ibclient.EA{"Network Name": networkName})
-		if err != nil {
-			return nil, err
-		}
-		if networkByName != nil {
-			if networkByName.Cidr != pool {
-				msg := fmt.Sprintf("Network name (%s) has different CIDR (%s)", networkName, networkByName.Cidr)
-				logrus.Debugf("requestSpecificNetwork: %s", msg)
-				return nil, errors.New(msg)
-			}
-		}
-	}
-
-	if network == nil {
-		network, err = ibDrv.objMgr.CreateNetwork(netview, pool, networkName)
-		logrus.Debugf("requestSpecificNetwork: CreateNetwork returns '%s', err='%s'", *network, err)
-	}
-
-	return network, err
 }
 
 func (ibDrv *InfobloxDriver) createNetworkContainer(netview string, pool string) (*ibclient.NetworkContainer, error) {
@@ -166,9 +141,8 @@ func (ibDrv *InfobloxDriver) allocateNetworkHelper(addrSpace *InfobloxAddressSpa
 	}
 	container := nextAvailableContainer(addrSpace)
 	for container != nil {
-		logrus.Infof("Allocating network from Container:'%s'", container.NetworkContainer)
+		logrus.Infof("Allocating network from Container:'%s'\n", container.NetworkContainer)
 		if container.ContainerObj == nil {
-			var err error
 			container.ContainerObj, err = ibDrv.createNetworkContainer(addrSpace.NetviewName, container.NetworkContainer)
 			if err != nil {
 				return nil, err
@@ -185,8 +159,8 @@ func (ibDrv *InfobloxDriver) allocateNetworkHelper(addrSpace *InfobloxAddressSpa
 	return network, nil
 }
 
-func (ibDrv *InfobloxDriver) allocateNetwork(netview string, prefixLen uint, networkName string) (network *ibclient.Network, err error) {
-	addrSpace := ibDrv.addressSpaceByView[netview]
+func (ibDrv *InfobloxDriver) allocateNetwork(netView string, prefixLen uint, networkName string) (network *ibclient.Network, err error) {
+	addrSpace := ibDrv.addressSpaceByView[netView]
 
 	network, err = ibDrv.allocateNetworkHelper(addrSpace, prefixLen, networkName)
 	if network == nil {
@@ -200,50 +174,127 @@ func (ibDrv *InfobloxDriver) allocateNetwork(netview string, prefixLen uint, net
 	return
 }
 
-func (ibDrv *InfobloxDriver) RequestPool(r *ipamApi.RequestPoolRequest) (res *ipamApi.RequestPoolResponse, err error) {
-	logrus.Debugf("RequestPoolRequest is '%v'\n", r)
+func (ibDrv *InfobloxDriver) getSharedNetwork(netViewName string, pool string, networkName string) (*ibclient.Network, error) {
 
-	netviewName := ibclient.BuildNetworkViewFromRef(r.AddressSpace).Name
+	// Check if this network exists in NIOS. If it exists then check if pool is also
+	// passed. If so then CIDR should match for both the networks.
+	logrus.Infof("Searching network with name (%s) in view (%s)\n", networkName, netViewName)
+	networkByName, err := ibDrv.objMgr.GetNetwork(netViewName, "", ibclient.EA{"Network Name": networkName})
+	if err != nil {
+		msg := fmt.Sprintf("Error while fetching shared network with name %s from NIOS: (%s)", networkName, err)
+		return nil, errors.New(msg)
+	}
 
-	var network *ibclient.Network
+	// If the name matches and request also specifies a pool
+	// then verify if the networks have same CIDR as in the request Pool.
+	if networkByName != nil {
+		if len(pool) > 0 {
+			if networkByName.Cidr != pool {
+				msg := fmt.Sprintf("Cannot allocate Pool %s. Network name %s is already allocated to Network %s", pool, networkName, networkByName.Cidr)
+				logrus.Errorln(msg)
+				return nil, errors.New(msg)
+			}
+		}
+		// Network exists and is same as requested
+		logrus.Debugf("Shared network (%s) found with CIDR (%s)\n", networkName, networkByName.Cidr)
+		return networkByName, nil
+	}
+	return networkByName, nil
+}
+
+func (ibDrv *InfobloxDriver) createSharedNetwork(netViewName string, pool string, networkName string, prefixLen uint) (*ibclient.Network, error) {
+
+	l := &ibclient.NetworkViewLock{Name: netViewName, ObjMgr: ibDrv.objMgr, LockEA: common.EA_DOCKER_PLUGIN_LOCK,
+		LockTimeoutEA: common.EA_DOCKER_PLUGIN_LOCK_TIME}
+	err := l.Lock()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create network %s: %s", networkName, err)
+	}
+
+	defer l.UnLock(false)
+	logrus.Infof("Got the Lock. Creating shared network %s", networkName)
+	// get the network if it exists
+	networkByName, err := ibDrv.getSharedNetwork(netViewName, pool, networkName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if networkByName != nil {
+		return networkByName, nil
+	}
+
+	logrus.Infof("Shared Network %s not found. Creating shared network with CIDR %s\n", networkName, pool)
+	network, err := ibDrv.createNetwork(netViewName, pool, networkName, prefixLen)
+	return network, err
+}
+
+func (ibDrv *InfobloxDriver) createNetwork(netViewName string, pool string, networkName string, prefixLen uint) (network *ibclient.Network, err error) {
+
+	if len(pool) > 0 {
+		// Create the specific network sent in the RequestPool
+		network, err = ibDrv.objMgr.CreateNetwork(netViewName, pool, networkName)
+	} else {
+		// Allocate from the network container
+		network, err = ibDrv.allocateNetwork(netViewName, prefixLen, networkName)
+	}
+	return
+}
+
+func (ibDrv *InfobloxDriver) RequestPool(r *ipamApi.RequestPoolRequest) (*ipamApi.RequestPoolResponse, error) {
+	logrus.Infof("RequestPool Called : %+v\n", r)
+
+	netViewName := ibclient.BuildNetworkViewFromRef(r.AddressSpace).Name
+
 	var networkName string
+	var network *ibclient.Network
+	var err error
 
 	if opt, ok := r.Options["network-name"]; ok {
 		networkName = opt
 	}
 
-	if len(r.Pool) > 0 {
-		network, err = ibDrv.requestSpecificNetwork(netviewName, r.Pool, networkName)
-	} else {
-		var prefixLen uint
-		var networkByName *ibclient.Network
-		if networkName != "" {
-			networkByName, err = ibDrv.objMgr.GetNetwork(netviewName, "", ibclient.EA{"Network Name": networkName})
-			if err != nil {
-				return
-			}
-		}
-		if networkByName != nil {
-			logrus.Debugf("RequestNetwork: GetNetwork by name returns '%s'", *networkByName)
-			network = networkByName
-		} else {
-			if opt, ok := r.Options["prefix-length"]; ok {
-				if v, err := strconv.ParseUint(opt, 10, 8); err == nil {
-					prefixLen = uint(v)
-				}
-			}
-			network, err = ibDrv.allocateNetwork(netviewName, prefixLen, networkName)
+	var prefixLen uint
+	if opt, ok := r.Options["prefix-length"]; ok {
+		if v, err := strconv.ParseUint(opt, 10, 8); err == nil {
+			prefixLen = uint(v)
 		}
 	}
 
-	if network != nil {
-		logrus.Infof("Network Allocated is %s \n", network.Cidr)
-		res = &ipamApi.RequestPoolResponse{PoolID: network.Ref, Pool: network.Cidr}
+	if networkName != "" {
+		// Create the shared network
+		network, err = ibDrv.createSharedNetwork(netViewName, r.Pool, networkName, prefixLen)
+	} else {
+		// Check if this network exists. If network exists then throw error because
+		// this is not a shared network.
+		if len(r.Pool) > 0 {
+			network, err = ibDrv.objMgr.GetNetwork(netViewName, r.Pool, nil)
+			if err != nil {
+				msg := fmt.Sprintf("Error while fetching network with pool %s from NIOS: (%s)", r.Pool, err)
+				return nil, errors.New(msg)
+			}
+			if network != nil {
+				msg := fmt.Sprintf("Network %s already exists in Network view %s", network.Cidr, netViewName)
+				logrus.Errorln(msg)
+				return nil, errors.New(msg)
+			}
+		}
+
+		network, err = ibDrv.createNetwork(netViewName, r.Pool, "", prefixLen)
 	}
-	return
+
+	if err != nil {
+		msg := fmt.Sprintf("Error while allocating pool: (%s)", err)
+		return nil, errors.New(msg)
+	} else {
+		logrus.Infof("Network Allocated : %s \n", network.Cidr)
+		return &ipamApi.RequestPoolResponse{PoolID: network.Ref, Pool: network.Cidr}, nil
+	}
 }
 
 func (ibDrv *InfobloxDriver) ReleasePool(r *ipamApi.ReleasePoolRequest) error {
+	logrus.Infof("ReleasePool Called : %+v\n", r)
 
 	logrus.Debugf("Releasing Network %s\n", r.PoolID)
 	if len(r.PoolID) > 0 {
