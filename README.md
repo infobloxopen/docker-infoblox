@@ -50,6 +50,10 @@ Plugin is installed by pulling the infoblox/ipam-plugin from the docker store an
 
 In Docker swarm mode the plugin needs to be installed on all the nodes.
 
+Plugin can be configured with either of the following ways:
+1. Using the plugin configuration file
+2. Using the plugin environment variables
+
 ### 1) Installing and configuring the plugin with the configuration file
 Create a file `docker-infoblox.conf` (configurable via CONF_FILE_NAME parameter) in **`/etc/infoblox/`** directory and add the configuration options in the file.
 
@@ -175,10 +179,10 @@ $ docker run -it --network priv-net alpine /bin/sh
        valid_lft forever preferred_lft forever
 / #
 ```
-### Using Plugin in Swarm mode
+### Using plugin in swarm mode with swarm scope networks
 
-Currently the plugin supports the MACVLAN network driver in the swarm mode.
-The plugin needs to be installed in all the swarm nodes.
+Currently the plugin supports only the MACVLAN network driver with swarm scope.
+Before performing the following steps, the plugin needs to be installed on all the swarm nodes.
 
 1) Create a config only network on all the nodes
 ```
