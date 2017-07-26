@@ -48,6 +48,12 @@ By default, the ipam-plugin assumes that the "Cloud Network Automation" licensed
 
 Plugin is installed by pulling the infoblox/ipam-plugin from the docker store and setting its environment variables.
 
+In Docker swarm mode the plugin needs to be installed on all the nodes.
+
+Plugin can be configured with either of the following ways:
+1. Using the plugin configuration file
+2. Using the plugin environment variables
+
 ### 1) Installing and configuring the plugin with the configuration file
 Create a file `docker-infoblox.conf` (configurable via CONF_FILE_NAME parameter) in **`/etc/infoblox/`** directory and add the configuration options in the file.
 
@@ -172,7 +178,113 @@ $ docker run -it --network priv-net alpine /bin/sh
     inet6 fe80::42:aeff:feaa:e41c/64 scope link
        valid_lft forever preferred_lft forever
 / #
+```
+### Using plugin in swarm mode with swarm scope networks
 
+Currently the plugin supports only the MACVLAN network driver with swarm scope.
+Before performing the following steps, the plugin needs to be installed on all the swarm nodes.
+
+1) Create a config only network on all the nodes
+```
+sudo docker network create --config-only -o parent=eth1 --ipam-driver=infoblox/ipam-plugin:1.1.0 --ipam-opt="network-name=macvlan23" mv-config-3
+```
+
+2) Create MACVLAN network with swarm scope on the swarm manager node
+```
+sudo docker network create -d macvlan --scope=swarm --config-from mv-config-3 --attachable swarm-macvlan
+```
+
+3) Run service with the swarm network
+```
+sudo docker service create --replicas 3 --network swarm-macvlan --name swarm-macvlan-test chrch/docker-pets:1.0
+```
+
+4) Verify the IPs allocated to the containers of the service
+```
+master $ sudo docker network inspect --verbose --format '{{json .Services}}' swarm-macvlan | python -m json.tool
+{
+    "swarm-macvlan-test": {
+        "LocalLBIndex": 262,
+        "Ports": [],
+        "Tasks": [
+            {
+                "EndpointID": "18c19d799d117a8afa20fcf5bb51c8927a4921abe121913e0b080284da459080",
+                "EndpointIP": "192.168.9.196",
+                "Info": null,
+                "Name": "swarm-macvlan-test.2.xqlym8mbvpo9qw6g9b6bwbm5j"
+            },
+            {
+                "EndpointID": "ac6d449822bac91916ed2aa9ab6dd02001cd324ec902fc14358cdebad3f9ca5e",
+                "EndpointIP": "192.168.9.198",
+                "Info": null,
+                "Name": "swarm-macvlan-test.3.kopddbmdmavmmd1mbmo4s9i4v"
+            },
+            {
+                "EndpointID": "c399388cbc2ca94c5a64bb0c7fef6d398d58baf01c6dec3ede26b58f976c0eb7",
+                "EndpointIP": "192.168.9.197",
+                "Info": null,
+                "Name": "swarm-macvlan-test.1.cfjzh0hnnroguzire8xpskjrb"
+            }
+        ],
+        "VIP": "<nil>"
+    }
+}
+```
+
+4) Verify the connectivity between the containers by running these commands on the swarm manager node
+```
+master $ sudo docker service ls
+ID                  NAME                 MODE                REPLICAS            IMAGE                   PORTS
+huj54859rbgr        swarm-macvlan-test   replicated          3/3                 chrch/docker-pets:1.0   
+```
+```
+master $ sudo docker service ps huj54859rbgr
+ID                  NAME                   IMAGE                   NODE                DESIRED STATE       CURRENT STATE        ERROR               PORTS
+cfjzh0hnnrog        swarm-macvlan-test.1   chrch/docker-pets:1.0   worker-1            Running             Running 7 days ago                       
+xqlym8mbvpo9        swarm-macvlan-test.2   chrch/docker-pets:1.0   worker-2            Running             Running 7 days ago                       
+kopddbmdmavm        swarm-macvlan-test.3   chrch/docker-pets:1.0   master              Running             Running 7 days ago                       
+```
+```
+master $ sudo docker exec -it swarm-macvlan-test.3.kopddbmdmavmmd1mbmo4s9i4v sh
+/app # ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+40: eth0@if3: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UNKNOWN
+    link/ether 02:42:05:4d:d0:a1 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.9.198/26 scope global eth0
+       valid_lft forever preferred_lft forever
+/app #
+/app # ping swarm-macvlan-test.1.cfjzh0hnnroguzire8xpskjrb
+PING swarm-macvlan-test.1.cfjzh0hnnroguzire8xpskjrb (192.168.9.197): 56 data bytes
+64 bytes from 192.168.9.197: seq=0 ttl=64 time=0.868 ms
+64 bytes from 192.168.9.197: seq=1 ttl=64 time=0.728 ms
+64 bytes from 192.168.9.197: seq=2 ttl=64 time=0.759 ms
+64 bytes from 192.168.9.197: seq=3 ttl=64 time=0.783 ms
+
+--- swarm-macvlan-test.1.cfjzh0hnnroguzire8xpskjrb ping statistics ---
+4 packets transmitted, 4 packets received, 0% packet loss
+round-trip min/avg/max = 0.728/0.784/0.868 ms
+/app #
+/app # ping swarm-macvlan-test.2.xqlym8mbvpo9qw6g9b6bwbm5j
+PING swarm-macvlan-test.2.xqlym8mbvpo9qw6g9b6bwbm5j (192.168.9.196): 56 data bytes
+64 bytes from 192.168.9.196: seq=0 ttl=64 time=1.129 ms
+64 bytes from 192.168.9.196: seq=1 ttl=64 time=0.427 ms
+64 bytes from 192.168.9.196: seq=2 ttl=64 time=0.636 ms
+64 bytes from 192.168.9.196: seq=3 ttl=64 time=0.744 ms
+64 bytes from 192.168.9.196: seq=4 ttl=64 time=0.655 ms
+
+--- swarm-macvlan-test.2.xqlym8mbvpo9qw6g9b6bwbm5j ping statistics ---
+5 packets transmitted, 5 packets received, 0% packet loss
+round-trip min/avg/max = 0.427/0.718/1.129 ms
+/app #
+/app # curl swarm-macvlan-test.2.xqlym8mbvpo9qw6g9b6bwbm5j:5000
+<html>
+  <head>  
+    <link rel='stylesheet' type='text/css' href="../static/style.css">
+    <title>Docker PaaS</title>
+  </head> ...
 ```
 
 ## Logging
