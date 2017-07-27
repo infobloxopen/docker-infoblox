@@ -18,4 +18,4 @@ COPY . /go/src/github.com/infobloxopen/docker-infoblox
 WORKDIR /go/src/github.com/infobloxopen/docker-infoblox
 
 RUN go build -o bin/ipam-plugin ./driver \
-    && go build -o bin/create_ea_defs ./ea-defs
+    && go build -o bin/create-ea-defs ./ea-defs
