@@ -1,0 +1,88 @@
+hash: 45308d41bc5eef47bbac9673c5be10bc1e524c85ec690f342d75d780fe1ca33d
+updated: 2017-07-31T23:59:26.492819204+05:30
+imports:
+- name: github.com/BurntSushi/toml
+  version: b26d9c308763d68093482582cea63d69be07a0f0
+- name: github.com/caarlos0/env
+  version: 0cf029d5748c52beb2c9d20c81880cb4bdf8f788
+- name: github.com/coreos/go-systemd
+  version: b4a58d95188dd092ae20072bac14cece0e67c388
+  subpackages:
+  - activation
+  - dbus
+  - util
+- name: github.com/docker/distribution
+  version: edc3ab29cdff8694dd6feb85cfeb4b5f1b38ed9c
+  subpackages:
+  - digestset
+  - reference
+- name: github.com/docker/engine-api
+  version: 3d1601b9d2436a70b0dfc045a23f6503d19195df
+  subpackages:
+  - client
+  - client/transport
+  - client/transport/cancellable
+  - types
+  - types/blkiodev
+  - types/container
+  - types/filters
+  - types/network
+  - types/reference
+  - types/registry
+  - types/strslice
+  - types/swarm
+  - types/time
+  - types/versions
+- name: github.com/docker/go-connections
+  version: 34b5052da6b11e27f5f2e357b38b571ddddd3928
+  subpackages:
+  - nat
+  - sockets
+  - tlsconfig
+- name: github.com/docker/go-plugins-helpers
+  version: 96217206cc52dcc41d4ace9a9bef8c6111f2e5f9
+  subpackages:
+  - ipam
+  - sdk
+- name: github.com/docker/go-units
+  version: 8e2d4523730c73120e10d4652f36ad6010998f4e
+- name: github.com/docker/libnetwork
+  version: 6d23f11e681f24ee31802939e243fe8be41a75eb
+  subpackages:
+  - netlabel
+- name: github.com/infobloxopen/infoblox-go-client
+  version: e3afa79f174f4ef5932d24c97d69fdf6569bd3c5
+- name: github.com/Microsoft/go-winio
+  version: 8f9387ea7efabb228a981b9c381142be7667967f
+- name: github.com/opencontainers/go-digest
+  version: 279bed98673dd5bef374d3b6e4b09e2af76183bf
+- name: github.com/opencontainers/runc
+  version: ba1568de399395774ad84c2ace65937814c542ed
+  subpackages:
+  - libcontainer
+  - libcontainer/apparmor
+  - libcontainer/cgroups
+  - libcontainer/cgroups/fs
+  - libcontainer/cgroups/systemd
+  - libcontainer/configs
+  - libcontainer/configs/validate
+  - libcontainer/criurpc
+  - libcontainer/label
+  - libcontainer/seccomp
+  - libcontainer/selinux
+  - libcontainer/stacktrace
+  - libcontainer/system
+  - libcontainer/user
+  - libcontainer/utils
+- name: github.com/Sirupsen/logrus
+  version: a3f95b5c423586578a4e099b11a46c2479628cac
+- name: golang.org/x/net
+  version: 9dd48c277bcb2bb2cc3eb6a6368a486a567d3562
+  subpackages:
+  - context
+  - proxy
+- name: golang.org/x/sys
+  version: 0f826bdd13b500be0f1d4004938ad978fcc6031e
+  subpackages:
+  - unix
+testImports: []
