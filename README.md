@@ -59,7 +59,7 @@ Create a file `docker-infoblox.conf` (configurable via CONF_FILE_NAME parameter)
 
 A sample plugin configuration file looks like this:
 ```
-[grid_config]
+[grid-config]
 grid-host="10.120.21.150"
 wapi-port="443"
 wapi-username="infoblox"
@@ -69,7 +69,7 @@ ssl-verify="false"
 http-request-timeout=60
 http-pool-connections=10
 
-[ipam_config]
+[ipam-config]
 global-view="global_view"
 global-network-container="172.18.0.0/16"
 global-prefix-length=24
