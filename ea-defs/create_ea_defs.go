@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/infobloxopen/docker-infoblox/common"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
-	"log"
 )
 
 func GetRequiredEADefs() []ibclient.EADefinition {
@@ -17,11 +17,16 @@ func GetRequiredEADefs() []ibclient.EADefinition {
 }
 
 func main() {
-	config, err := common.LoadConfig()
+	config, err := common.LoadCreateEADefConfig()
 	if config == nil || err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
+	if config.Debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
+	logrus.Debugf("Configuration options : %+v\n", config)
 	hostConfig := ibclient.HostConfig{
 		Host:     config.GridHost,
 		Version:  config.WapiVer,
@@ -42,7 +47,7 @@ func main() {
 	conn, err := ibclient.NewConnector(hostConfig, transportConfig, requestBuilder, requestor)
 
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	objMgr := ibclient.NewObjectManager(conn, "Docker", "")
@@ -52,18 +57,18 @@ func main() {
 		eadef, err := objMgr.GetEADefinition(e.Name)
 
 		if err != nil {
-			log.Printf("GetEADefinition(%s) error '%s'", e.Name, err)
+			logrus.Printf("GetEADefinition(%s) error '%s'", e.Name, err)
 			continue
 		}
 
 		if eadef != nil {
-			log.Printf("EA Definition '%s' already exists", eadef.Name)
+			logrus.Printf("EA Definition '%s' already exists", eadef.Name)
 
 		} else {
-			log.Printf("EA Definition '%s' not found.", e.Name)
+			logrus.Printf("EA Definition '%s' not found.", e.Name)
 			newEadef, err := objMgr.CreateEADefinition(e)
 			if err == nil {
-				log.Printf("EA Definition '%s' created", newEadef.Name)
+				logrus.Printf("EA Definition '%s' created", newEadef.Name)
 			}
 		}
 	}

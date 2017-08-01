@@ -56,7 +56,7 @@ type ipamCall struct {
 }
 
 func main() {
-	config, err := common.LoadConfig()
+	config, err := common.LoadPluginConfig()
 	if config == nil || err != nil {
 		logrus.Fatal(err)
 	}
