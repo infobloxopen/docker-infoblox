@@ -1,0 +1,24 @@
+package: github.com/infobloxopen/docker-infoblox
+import:
+- package: github.com/BurntSushi/toml
+  version: v0.3.0
+- package: github.com/Sirupsen/logrus
+  version: 1.0.2
+- package: github.com/caarlos0/env
+  version: v3.0
+- package: github.com/docker/engine-api
+  version: v0.4.0
+  subpackages:
+  - client
+- package: github.com/docker/go-plugins-helpers
+  subpackages:
+  - ipam
+- package: github.com/docker/libnetwork
+  version: v0.8.0-dev.2
+  subpackages:
+  - netlabel
+- package: github.com/infobloxopen/infoblox-go-client
+  version: e3afa79f174f4ef5932d24c97d69fdf6569bd3c5
+- package: golang.org/x/net
+  subpackages:
+  - context
