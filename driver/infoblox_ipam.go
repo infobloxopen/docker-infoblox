@@ -76,10 +76,28 @@ func (ibDrv *InfobloxDriver) RequestAddress(r *ipamApi.RequestAddressRequest) (*
 	if rType, ok := r.Options["RequestAddressType"]; macAddr == "" || (ok && rType == netlabel.Gateway) {
 		logrus.Debugln("Request for Gateway IP")
 
+		l := &ibclient.NetworkViewLock{Name: network.NetviewName, ObjMgr: ibDrv.objMgr, LockEA: common.EA_DOCKER_PLUGIN_LOCK,
+			LockTimeoutEA: common.EA_DOCKER_PLUGIN_LOCK_TIME}
+		err := l.Lock()
+
+		if err != nil {
+			return  &ipamApi.RequestAddressResponse{}, fmt.Errorf("Failed to Allocate Gateway IP :%s", err)
+		}
+		defer l.UnLock(false)
+
+		if r.Address != "" {
+			ipAddr, err := ibDrv.objMgr.GetFixedAddress(network.NetviewName, network.Cidr, r.Address, "")
+			if err == nil && ipAddr != nil {
+				addr := fmt.Sprintf("%s/%s", r.Address, getPrefixLength(network.Cidr))
+				return &ipamApi.RequestAddressResponse{Address: addr}, nil
+			}
+		}
+
 		if len(macAddr) == 0 {
 			macAddr = ibclient.MACADDR_ZERO
 			logrus.Infof("RequestAddressRequest contains empty MAC Address. '%s' will be used.\n", macAddr)
 		}
+
 		fixedAddr, err = ibDrv.objMgr.AllocateIP(network.NetviewName, network.Cidr, r.Address, macAddr, "")
 		if err != nil {
 			msg := fmt.Sprintf("Failed to allocate Gateway IP for network %s : %s", network.Cidr, err)
