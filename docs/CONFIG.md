@@ -41,26 +41,6 @@ To use the configuration file for create-ea-defs:
 docker run -v /etc/infoblox:/etc/infoblox infoblox/docker-ipam-tools create-ea-defs --debug --conf-file docker-infoblox.conf
 ```
 
-Manual Configuration of Cloud Extensible Attributes
----------------------------------------------------
-If the "Cloud Network Automation" licensed feature is not activiated, the following Cloud Extensible Attributes must
-be manually defined in Infoblox:
-
-- ```Cloud API Owned``` - Type: List; Values: True, False
-
-- ```CMP Type``` - Type: String
-
-- ```Tenant ID``` - Type: String
-
-- ```Docker-Plugin-Lock``` - Type: String
-
-- ```Docker-Plugin-Lock-Time``` - Type: Integer
-
-
-The User Interface to add Extensible Attribute definitions can be found under the main tab "Administration" and under the
-sub-tab "Extensible Attributes".
-
-
 IPAM Driver Configuration
 -------------------------
 Based on the vNIOS configuration, update the following driver configuration:
