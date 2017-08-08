@@ -3,16 +3,16 @@ Building docker-ipam-plugin and docker-ipam-tools images
 
 Building Plugin Image
 ---------------------
-To build the plugin image use the following command:
+To create the plugin image use the following command:
 ```
-make build-binary build-plugin create-plugin
+make create-plugin
 ```
 
 Building Ipam Tools Image
 ---------------------
 To build the ipam-tools image use the following command:
 ```
-make build-binary build-tools-image
+make build-tools-image
 ```
 
 Pushing Plugin/Tools Image to Docker Hub
