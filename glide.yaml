@@ -11,6 +11,7 @@ import:
   subpackages:
   - client
 - package: github.com/docker/go-plugins-helpers
+  version: 96217206cc52dcc41d4ace9a9bef8c6111f2e5f9
   subpackages:
   - ipam
 - package: github.com/docker/libnetwork
@@ -22,3 +23,7 @@ import:
 - package: golang.org/x/net
   subpackages:
   - context
+- package: github.com/docker/go-connections
+  version: 3ede32e2033de7505e6500d6c868c2b9ed9f169d
+  subpackages:
+  - sockets
