@@ -26,20 +26,20 @@ are based.
 The following additional steps are required:
 - You need to give cloud-api admin user permission to create and modify DNS Views. Instructions on how to add permission to "cloud-api-only" group is included in the video. Follow the same instructions to add "All DNS Views" permission under the "DNS Permissions" Permssion Type.
 
-Manual Configuration of Cloud Extensible Attributes
----------------------------------------------------
-If the "Cloud Network Automation" licensed feature is not activiated, the following Cloud Extensible Attributes must
-be manually defined in Infoblox:
+Configuring Cloud Extensible Attributes using create-ea-defs tool
+-----------------------------------------------------------------
+If the "Cloud Network Automation" license is activated, then the Cloud Extensible Attributes used by the docker-ipam-plugin
+can be defined using the create-ea-defs tool in the infoblox/docker-ipam-tools docker image.
 
-- ```Cloud API Owned``` - Type: List; Values: True, False
+To run create-ea-defs:
+```
+docker run infoblox/docker-ipam-tools create-ea-defs --debug --grid-host 10.120.21.150 --wapi-username=admin --wapi-password=infoblox --wapi-version=2.3
+```
 
-- ```CMP Type``` - Type: String
-
-- ```Tenant ID``` - Type: String
-
-The User Interface to add Extensible Attribute definitions can be found under the main tab "Administration" and under the
-sub-tab "Extensible Attributes".
-
+To use the configuration file for create-ea-defs:
+```
+docker run -v /etc/infoblox:/etc/infoblox infoblox/docker-ipam-tools create-ea-defs --debug --conf-file docker-infoblox.conf
+```
 
 IPAM Driver Configuration
 -------------------------
@@ -47,5 +47,4 @@ Based on the vNIOS configuration, update the following driver configuration:
 - Set grid-host to the management IP address of vNIOS
 - Set username and password to that for the Cloud Admin user on vNIOS.
 
-These configurations can be applied by editing the "run.sh" and "run-container.sh" shell scripts. 
-
+These configurations can be applied by editing the "run.sh" and "run-container.sh" shell scripts.
