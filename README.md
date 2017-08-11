@@ -179,6 +179,16 @@ $ docker run -it --network priv-net alpine /bin/sh
        valid_lft forever preferred_lft forever
 / #
 ```
+
+Inoder to use an existing NIOS network as a Docker network, add an EA "Network Name" to that network and then pass the EA value
+as ipam-opt while creating the Docker network.
+
+For example if there is a network "172.56.121.0/24" with gateway "172.56.121.1" already existing, then add an EA "Network Name"
+for the network with value as "SomeNetwork" in NIOS. Then create the Docker network:
+```
+docker network create --ipam-driver=infoblox:latest --subnet 172.56.121.0/24 --gateway 172.56.121.1 --ipam-opt="network-name=SomeNetwork" SomeNetwork
+```
+
 ### Using plugin in swarm mode with swarm scope networks
 
 Currently the plugin supports only the MACVLAN network driver with swarm scope.
@@ -186,12 +196,12 @@ Before performing the following steps, the plugin needs to be installed on all t
 
 1) Create a config only network on all the nodes
 ```
-sudo docker network create --config-only -o parent=eth1 --ipam-driver=infoblox/docker-ipam-plugin:1.1.0 --ipam-opt="network-name=macvlan23" mv-config-3
+sudo docker network create --config-only -o parent=eth1 --ipam-driver=infoblox:latest --ipam-opt="network-name=docker-macvlan" mv-config
 ```
 
 2) Create MACVLAN network with swarm scope on the swarm manager node
 ```
-sudo docker network create -d macvlan --scope=swarm --config-from mv-config-3 --attachable swarm-macvlan
+sudo docker network create -d macvlan --scope=swarm --config-from mv-config --attachable swarm-macvlan
 ```
 
 3) Run service with the swarm network
