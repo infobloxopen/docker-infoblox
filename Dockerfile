@@ -1,6 +1,7 @@
-FROM ubuntu
+FROM alpine:3.5
 
-ADD ipam-driver /
+RUN mkdir -p /run/docker/plugins
 
+COPY bin/ipam-plugin /ipam-plugin
 
-ENTRYPOINT ["/ipam-driver"]
+ENTRYPOINT ["/ipam-plugin"]

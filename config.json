@@ -1,0 +1,160 @@
+{
+   "Description":"Infoblox IPAM plugin for Docker",
+   "Documentation":"http://github.com/infobloxopen/docker-infoblox",
+   "Entrypoint":[
+      "/ipam-plugin"
+   ],
+   "Interface":{
+      "Socket":"infoblox.sock",
+      "Types":[
+         "docker.ipamdriver/1.0"
+      ]
+   },
+   "Network":{
+      "Type":"host"
+   },
+   "Env":[
+     {
+       "Description": "NIOS Grid host IP or Hostname",
+       "Name": "GRID_HOST",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Infoblox WAPI Port",
+       "Name": "WAPI_PORT",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Infoblox WAPI Username",
+       "Name": "WAPI_USERNAME",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Infoblox WAPI Password",
+       "Name": "WAPI_PASSWORD",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Infoblox WAPI Version",
+       "Name": "WAPI_VERSION",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Specifies whether to verify server certificate or not",
+       "Name": "SSL_VERIFY",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Infoblox WAPI request timeout in seconds",
+       "Name": "HTTP_REQUEST_TIMEOUT",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Infoblox WAPI request connection pool size",
+       "Name": "HTTP_POOL_CONNECTIONS",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Infoblox Network View for Global Address Space",
+       "Name": "GLOBAL_VIEW",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Subnets will be allocated from this container when --subnet is not specified during network creation",
+       "Name": "GLOBAL_NETWORK_CONTAINER",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "The default CIDR prefix length when allocating a global subnet",
+       "Name": "GLOBAL_PREFIX_LENGTH",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Infoblox Network View for Local Address Space",
+       "Name": "LOCAL_VIEW",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Subnets will be allocated from this container when --subnet is not specified during network creation",
+       "Name": "LOCAL_NETWORK_CONTAINER",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "The default CIDR prefix length when allocating a local subnet",
+       "Name": "LOCAL_PREFIX_LENGTH",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Name of configuration file in /etc/infoblox directory",
+       "Name": "CONF_FILE_NAME",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Sets log level to debug",
+       "Name": "DEBUG",
+       "Settable": [
+           "value"
+       ]
+     },
+     {
+       "Description": "Docker API Version to access Docker Remote API",
+       "Name": "DOCKER_API_VERSION",
+       "Settable": [
+           "value"
+       ],
+       "Value" : "1.22"
+     }
+   ],
+   "Mounts":[
+      {
+         "Description":"Location of the Infoblox config file (/etc/infoblox/docker-infoblox.conf)",
+         "Source":"/etc/infoblox",
+         "Destination":"/etc/infoblox",
+         "Type":"bind",
+         "Options":[
+            "rbind"
+         ]
+      },
+      {
+         "Description":"/var/run/docker.sock is required to make call to Docker",
+         "Source":"/var/run",
+         "Destination":"/var/run",
+         "Type":"bind",
+         "Options":[
+            "rbind"
+         ]
+      }
+   ],
+   "Linux":{
+   }
+}

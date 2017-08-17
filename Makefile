@@ -1,49 +1,60 @@
-SOURCES=ipam-driver.go infoblox-ipam.go config.go
-BINARY_NAME=ipam-driver
-IMAGE_NAME=ipam-driver
-LOCAL_IMAGE=$(IMAGE_NAME)
-DEV_IMAGE=$(DOCKERHUB_ID)/$(IMAGE_NAME)  # Requires DOCKERHUB_ID environment variable
-RELEASE_IMAGE=infoblox/$(IMAGE_NAME)
+ifeq ($(DOCKERHUB_ID),)
+    PLUGIN_NAME=docker-ipam-plugin
+	TOOLS_IMAGE_NAME=docker-ipam-tools
+else
+    PLUGIN_NAME=${DOCKERHUB_ID}/docker-ipam-plugin
+    TOOLS_IMAGE_NAME=${DOCKERHUB_ID}/docker-ipam-tools
+endif
+RELEASE=1.1.0
 
-CREATE_EA_DEFS=create_ea_defs
-CREATE_EA_DEFS_SOURCES=create_ea_defs.go config.go constants.go
+.PHONY: clean-plugin
+clean-plugin:
+	rm -rf ./plugin ./bin
+	docker plugin disable ${PLUGIN_NAME}:${RELEASE} || true
+	docker plugin rm ${PLUGIN_NAME}:${RELEASE} || true
+	docker rm -vf tmp || true
+	docker rmi ipam-build-image || true
+	docker rmi ${PLUGIN_NAME}:rootfs || true
 
+.PHONY: build-binary
+build-binary:
+	docker build -t ipam-build-image -f Dockerfile.build .
+	docker create --name build-container ipam-build-image
+	docker cp build-container:/go/src/github.com/infobloxopen/docker-infoblox/bin .
+	docker rm -vf build-container
+	docker rmi ipam-build-image
 
-# Build binary - this is the default target
-build: $(BINARY_NAME) $(CREATE_EA_DEFS)
+.PHONY: build-plugin
+build-plugin: build-binary
+	docker build -t ${PLUGIN_NAME}:rootfs .
+	mkdir -p ./plugin/rootfs
+	docker create --name tmp ${PLUGIN_NAME}:rootfs
+	docker export tmp | tar -x -C ./plugin/rootfs
+	cp config.json ./plugin/
+	docker rm -vf tmp
 
+.PHONY: create-plugin
+create-plugin: clean-plugin build-plugin
+	docker plugin create ${PLUGIN_NAME}:${RELEASE} ./plugin
 
-# Build binary and docker image
-all: build image
+.PHONY: enable-plugin
+enable-plugin: create-plugin
+	docker plugin enable ${PLUGIN_NAME}:${RELEASE}
 
+.PHONY: push-plugin
+push-plugin:  create-plugin
+	docker plugin push ${PLUGIN_NAME}:${RELEASE}
 
-# Build local docker image
-image: build
-	docker build -t $(LOCAL_IMAGE) .
+.PHONY: clean-tools-image
+clean-tools-image:
+	docker rmi ${TOOLS_IMAGE_NAME}:${RELEASE} || true
+	docker rmi ${TOOLS_IMAGE_NAME} || true
 
-# Push image to user's docker hub. NOTE: requires DOCKERHUB_ID environment variable
-push: image
-	docker tag $(LOCAL_IMAGE) $(DEV_IMAGE)
-	docker push $(DEV_IMAGE)
+.PHONY: build-tools-image
+build-tools-image: clean-tools-image build-binary
+	docker build -t ${TOOLS_IMAGE_NAME} -f Dockerfile.tools .
 
-# Push image to infoblox docker hub
-push-release: image
-	docker tag $(LOCAL_IMAGE) $(RELEASE_IMAGE)
-	docker push $(RELEASE_IMAGE)
-
-$(BINARY_NAME): $(SOURCES)
-	go build -o $(BINARY_NAME) ${SOURCES}
-
-$(CREATE_EA_DEFS): $(CREATE_EA_DEFS_SOURCES)
-	go build -o $(CREATE_EA_DEFS) ${CREATE_EA_DEFS_SOURCES}
-
-# Delete binary for clean build
-clean:
-	rm -f $(BINARY_NAME) $(CREATE_EA_DEFS)
-
-# Delete local docker images
-clean-images:
-	docker rmi -f $(LOCAL_IMAGE) $(DEV_IMAGE) $(RELEASE_IMAGE)
-
-# Clean everything
-clean-all: clean clean-images
+.PHONY: push-tools-image
+push-tools-image: build-tools-image
+	docker tag ${TOOLS_IMAGE_NAME} ${TOOLS_IMAGE_NAME}:${RELEASE}
+	docker push ${TOOLS_IMAGE_NAME}:${RELEASE}
