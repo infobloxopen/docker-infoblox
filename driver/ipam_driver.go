@@ -73,7 +73,7 @@ func main() {
 		Version:  config.WapiVer,
 		Port:     config.WapiPort,
 		Username: config.WapiUsername,
-		Password: config.WapiPassword,
+		Password: config.SecuredWapiPassword(),
 	}
 
 	transportConfig := ibclient.NewTransportConfig(

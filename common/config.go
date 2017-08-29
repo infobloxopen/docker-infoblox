@@ -25,6 +25,16 @@ type GridConfig struct {
 	SslVerify           string `toml:"ssl-verify" env:"SSL_VERIFY"`
 	HttpRequestTimeout  uint   `toml:"http-request-timeout" env:"HTTP_REQUEST_TIMEOUT"`
 	HttpPoolConnections uint   `toml:"http-pool-connections" env:"HTTP_POOL_CONNECTIONS"`
+	_wapiPassword       string
+}
+
+func (gridConfig *GridConfig) SetWapiPassword() {
+	gridConfig._wapiPassword = gridConfig.WapiPassword
+	gridConfig.WapiPassword = "******"
+}
+
+func (gridConfig *GridConfig) SecuredWapiPassword() string {
+	return gridConfig._wapiPassword
 }
 
 type IpamConfig struct {
@@ -189,6 +199,7 @@ func (eac *CreateEADefConfig) LoadConfig() error {
 func LoadPluginConfig() (*PluginConfig, error) {
 	pc := NewPluginConfig()
 	err := pc.LoadConfig()
+	pc.SetWapiPassword()
 	return &pc, err
 }
 

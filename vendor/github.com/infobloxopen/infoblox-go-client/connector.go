@@ -331,6 +331,10 @@ func NewConnector(hostConfig HostConfig, transportConfig TransportConfig,
 	connector.Requestor.Init(connector.TransportConfig)
 
 	res = connector
-
+	userprofile := NewUserProfile(UserProfile{})
+	_, err = connector.makeRequest(GET, userprofile, "")
+	if err != nil {
+		log.Printf("Failed while creating client...\n")
+	}
 	return
 }
