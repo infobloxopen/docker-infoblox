@@ -49,7 +49,7 @@ type PluginConfig struct {
 	IpamConfig `toml:"ipam-config"`
 }
 
-func (pc *PluginConfig) String() string {
+func (pc PluginConfig) String() string {
 	return fmt.Sprintf("{ConfigFile: %v, Debug: %v, GridConfig: %v, IpamConfig: %v}",
 		pc.ConfigFile, pc.Debug, pc.GridConfig, pc.IpamConfig)
 }
