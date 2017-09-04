@@ -2,6 +2,7 @@ package common
 
 import (
 	"flag"
+	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/Sirupsen/logrus"
 	"github.com/caarlos0/env"
@@ -27,6 +28,11 @@ type GridConfig struct {
 	HttpPoolConnections uint   `toml:"http-pool-connections" env:"HTTP_POOL_CONNECTIONS"`
 }
 
+func (gc GridConfig) String() string {
+	return fmt.Sprintf("{GridHost: %v, WapiVer: %v, WapiPort: %v, WapiUsername: %v, SslVerify: %v, HttpRequestTimeout: %v, HttpPoolConnections: %v}",
+		gc.GridHost, gc.WapiVer, gc.WapiPort, gc.WapiUsername, gc.SslVerify, gc.HttpRequestTimeout, gc.HttpPoolConnections)
+}
+
 type IpamConfig struct {
 	GlobalNetview          string `toml:"global-view" env:"GLOBAL_VIEW"`
 	GlobalNetworkContainer string `toml:"global-network-container" env:"GLOBAL_NETWORK_CONTAINER"`
@@ -43,10 +49,20 @@ type PluginConfig struct {
 	IpamConfig `toml:"ipam-config"`
 }
 
+func (pc PluginConfig) String() string {
+	return fmt.Sprintf("{ConfigFile: %v, Debug: %v, GridConfig: %v, IpamConfig: %v}",
+		pc.ConfigFile, pc.Debug, pc.GridConfig, pc.IpamConfig)
+}
+
 type CreateEADefConfig struct {
 	ConfigFile string `toml:""`
 	Debug      bool   `toml:"debug"`
 	GridConfig `toml:"grid-config"`
+}
+
+func (eac CreateEADefConfig) String() string {
+	return fmt.Sprintf("{ConfigFile: %v, Debug: %v, GridConfig: %v}",
+		eac.ConfigFile, eac.Debug, eac.GridConfig)
 }
 
 func NewGridConfig() GridConfig {
