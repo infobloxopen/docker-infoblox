@@ -3,6 +3,8 @@
 Infoblox docker-ipam-plugin is a Docker Engine managed plugin that interfaces with Infoblox
 to provide IP Address Management services for Docker containers.
 
+Infoblox docker-ipam-plugin is Docker Certified IPAM Plugin and is available at [Docker store](https://store.docker.com/plugins/infoblox-ipam-plugin/)
+
 ## Prerequisite
 
 To use the driver, you need access to the Infoblox DDI product. For evaluation purposes, you can download a
@@ -46,7 +48,7 @@ The configuration options are:
 
 By default, the docker-ipam-plugin assumes that the "Cloud Network Automation" licensed feature is activated in NIOS. Should this not be the case, refer to "Manual Configuration of Cloud Extensible Attributes" in CONFIG.md for additional configuration required.
 
-Plugin is installed by pulling the infoblox/docker-ipam-plugin from the docker store and setting its environment variables.
+Plugin is installed by pulling the store/infoblox/ipam-plugin:1.1.0 from the docker store and setting its environment variables.
 
 In Docker swarm mode the plugin needs to be installed on all the nodes.
 
@@ -81,10 +83,10 @@ local-prefix-length=25
 Set the CONF_FILE_NAME variable to this file name while installing the plugin.
 
 ```
-$ docker plugin install --alias infoblox infoblox/docker-ipam-plugin:1.1.0 \
+$ docker plugin install --alias infoblox store/infoblox/ipam-plugin:1.1.0 \
 CONF_FILE_NAME=docker-infoblox.conf
 
-Plugin "infoblox/docker-ipam-plugin:1.1.0" is requesting the following privileges:
+Plugin "store/infoblox/ipam-plugin:1.1.0" is requesting the following privileges:
  - network: [host]
  - mount: [/etc/infoblox]
  - mount: [/var/run]
@@ -101,7 +103,7 @@ To avoid the privileges request prompt pass the `--grant-all-permissions` option
 
 ```
 $ docker plugin install --grant-all-permissions --alias infoblox \
-infoblox/docker-ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf
+store/infoblox/ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf
 ```
 
 ### 2) Installing and configuring the plugin by setting its environment variables
@@ -109,7 +111,7 @@ infoblox/docker-ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf
 * Plugin can be configured without configuration file by setting all the plugin environment variables while installing the plugin.
 ```
 $ docker plugin install --grant-all-permissions --alias infoblox \
-infoblox/docker-ipam-plugin:1.1.0 GRID_HOST=10.120.21.150 \
+store/infoblox/ipam-plugin:1.1.0 GRID_HOST=10.120.21.150 \
 WAPI_USERNAME=admin WAPI_PASSWORD=infoblox GLOBAL_VIEW=global_view \
 GLOBAL_NETWORK_CONTAINER=172.18.0.0/16 LOCAL_VIEW=local_view \
 LOCAL_NETWORK_CONTAINER=192.168.0.0/20 LOCAL_PREFIX_LENGTH=25
@@ -118,7 +120,7 @@ LOCAL_NETWORK_CONTAINER=192.168.0.0/20 LOCAL_PREFIX_LENGTH=25
 * To override a configuration file option with the plugin environment variable
 ```
 $ docker plugin install --grant-all-permissions --alias infoblox \
-infoblox/docker-ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf \
+store/infoblox/ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf \
 LOCAL_NETWORK_CONTAINER=172.16.10.0/24
 ```
 Here `LOCAL_NETWORK_CONTAINER` overrides the `local-network-container` option in conf file.
@@ -126,7 +128,7 @@ Here `LOCAL_NETWORK_CONTAINER` overrides the `local-network-container` option in
 * Inorder to set the plugin log level as debug, set the `DEBUG` variable
 ```
 $ docker plugin install --grant-all-permissions --alias infoblox \
-infoblox/docker-ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf DEBUG=true
+store/infoblox/ipam-plugin:1.1.0 CONF_FILE_NAME=docker-infoblox.conf DEBUG=true
 ```
 
 
