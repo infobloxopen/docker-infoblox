@@ -5,6 +5,10 @@ to provide IP Address Management services for Docker containers.
 
 Infoblox docker-ipam-plugin is Docker Certified IPAM Plugin and is available at [Docker store](https://store.docker.com/plugins/infoblox-ipam-plugin/)
 
+## Limitations
+
+- Currently works against the Grid Master not the CP Member.
+
 ## Prerequisite
 
 To use the driver, you need access to the Infoblox DDI product. For evaluation purposes, you can download a
