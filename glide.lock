@@ -51,7 +51,7 @@ imports:
   subpackages:
   - netlabel
 - name: github.com/infobloxopen/infoblox-go-client
-  version: e3afa79f174f4ef5932d24c97d69fdf6569bd3c5
+  version: v0.3.0
 - name: github.com/Microsoft/go-winio
   version: 8f9387ea7efabb228a981b9c381142be7667967f
 - name: github.com/opencontainers/go-digest

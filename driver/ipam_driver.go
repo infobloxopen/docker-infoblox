@@ -1,15 +1,16 @@
 package main
 
 import (
+	"os"
+	"reflect"
+	"strings"
+
 	"github.com/Sirupsen/logrus"
 	apiclient "github.com/docker/engine-api/client"
 	ipamPluginSdk "github.com/docker/go-plugins-helpers/ipam"
 	"github.com/infobloxopen/docker-infoblox/common"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	ctx "golang.org/x/net/context"
-	"os"
-	"reflect"
-	"strings"
 )
 
 const socketAddress = "/run/docker/plugins/infoblox.sock"
@@ -100,7 +101,7 @@ func main() {
 		logrus.Infof("Docker id is '%s'\n", dockerID)
 	}
 	objMgr := ibclient.NewObjectManager(conn, "Docker", dockerID)
-
+	CheckForCloudLicense(objMgr)
 	ipamDrv := NewInfobloxDriver(objMgr, config.GlobalNetview, config.GlobalNetworkContainer, config.GlobalPrefixLength,
 		config.LocalNetview, config.LocalNetworkContainer, config.LocalPrefixLength)
 
