@@ -13,7 +13,8 @@ Infoblox docker-ipam-plugin is Docker Certified IPAM Plugin and is available at 
 
 To use the driver, you need access to the Infoblox DDI product. For evaluation purposes, you can download a
 virtual version of the product from the Infoblox Download Center (https://www.infoblox.com/infoblox-download-center)
-Alternatively, if you are an existing Infoblox customer, you can download it from the support site.
+Alternatively, if you are an existing Infoblox customer, you can download it from the support site and must be applied with
+cloud automation licensing from the CLI using ```set temp_license```.
 
 Refer to [CONFIG.md](docs/CONFIG.md) on how to configure vNIOS.
 
