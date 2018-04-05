@@ -1,15 +1,16 @@
 package main
 
 import (
+	"os"
+	"reflect"
+	"strings"
+
 	"github.com/Sirupsen/logrus"
 	apiclient "github.com/docker/engine-api/client"
 	ipamPluginSdk "github.com/docker/go-plugins-helpers/ipam"
 	"github.com/infobloxopen/docker-infoblox/common"
 	ibclient "github.com/infobloxopen/infoblox-go-client"
 	ctx "golang.org/x/net/context"
-	"os"
-	"reflect"
-	"strings"
 )
 
 const socketAddress = "/run/docker/plugins/infoblox.sock"
@@ -19,7 +20,7 @@ func getDockerID() (dockerID string, err error) {
 	err = nil
 	context := ctx.Background()
 
-	// Default to Docker API Version corresponding to Docker v1.10
+	// Default to Docker API Version corresponding to Docker v1.22
 	if os.Getenv("DOCKER_API_VERSION") == "" {
 		if err = os.Setenv("DOCKER_API_VERSION", "1.22"); err != nil {
 			logrus.Infof("Cannot set default Docker API Version: '%s'", err)
