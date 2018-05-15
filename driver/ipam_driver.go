@@ -101,7 +101,7 @@ func main() {
 		logrus.Infof("Docker id is '%s'\n", dockerID)
 	}
 	objMgr := ibclient.NewObjectManager(conn, "Docker", dockerID)
-
+	CheckForCloudLicense(objMgr)
 	ipamDrv := NewInfobloxDriver(objMgr, config.GlobalNetview, config.GlobalNetworkContainer, config.GlobalPrefixLength,
 		config.LocalNetview, config.LocalNetworkContainer, config.LocalPrefixLength)
 

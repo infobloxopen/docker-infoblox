@@ -19,7 +19,7 @@ import:
   subpackages:
   - netlabel
 - package: github.com/infobloxopen/infoblox-go-client
-  version: a7011ba7a38b75b63269695c4c392ebd1d8b0c72
+  version: v0.3.0
 - package: golang.org/x/net
   subpackages:
   - context

@@ -33,12 +33,12 @@ can be defined using the create-ea-defs tool in the infoblox/docker-ipam-tools d
 
 To run create-ea-defs:
 ```
-docker run infoblox/docker-ipam-tools:1.1.0 create-ea-defs --debug --grid-host 10.120.21.150 --wapi-username=admin --wapi-password=infoblox --wapi-version=2.3
+docker run infoblox/container-ipam-tool:0.0.1 create-ea-defs --debug --grid-host 10.120.21.150 --wapi-username=admin --wapi-password=infoblox --wapi-version=2.3
 ```
 
 To use the configuration file for create-ea-defs:
 ```
-docker run -v /etc/infoblox:/etc/infoblox infoblox/docker-ipam-tools:1.1.0 create-ea-defs --debug --conf-file docker-infoblox.conf
+docker run -v /etc/infoblox:/etc/infoblox infoblox/container-ipam-tool:0.0.1 create-ea-defs --debug --conf-file docker-infoblox.conf
 ```
 
 IPAM Driver Configuration
